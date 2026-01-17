@@ -12,6 +12,7 @@ const cardPerformance = document.getElementById('cardPerformance');
 const revenueSourcesTableBody = document.getElementById('revenueSourcesTableBody');
 const zoneTableBody = document.getElementById('zoneTableBody');
 const lgaTableBody = document.getElementById('lgaTableBody');
+const officersTableBody = document.getElementById('officersTableBody');
 const pageMessage = document.getElementById('pageMessage');
 
 const btnGenerateReport = document.getElementById('btnGenerateReport');
@@ -48,7 +49,10 @@ function getQueryParam(name) {
 
 function formatCurrency(value) {
   const num = Number(value || 0);
-  return '₦' + num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '₦' + num.toLocaleString('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 function formatPercent(numerator, denominator) {
@@ -91,7 +95,7 @@ function closeRevenueSourceModal() {
   revenueSourceModal.classList.remove('flex');
 }
 
-// Load data
+// MAIN LOAD
 (async () => {
   const supabase = window.supabaseClient;
   if (!supabase) {
@@ -180,7 +184,8 @@ function closeRevenueSourceModal() {
   // 4) Load revenues for this MDA (all sources)
   const { data: revenues, error: revenuesError } = await supabase
     .from('revenues')
-    .select('amount, revenue_source_id, zone_id, lga_id');
+    .select('amount, revenue_source_id, zone_id, lga_id')
+    .eq('mda_id', currentMdaId);
 
   if (revenuesError) {
     console.error('Error loading revenues:', revenuesError);
@@ -213,7 +218,7 @@ function closeRevenueSourceModal() {
     }
   });
 
-  // 5) Load zones and LGAs to show names
+  // 5) Load zones and LGAs
   const { data: zones, error: zonesError } = await supabase
     .from('zones')
     .select('id, name')
@@ -224,15 +229,11 @@ function closeRevenueSourceModal() {
     .select('id, name, zone_id')
     .order('name', { ascending: true });
 
-  if (zonesError) {
-    console.error('Error loading zones:', zonesError);
-  }
-  if (lgasError) {
-    console.error('Error loading LGAs:', lgasError);
-  }
+  if (zonesError) console.error('Error loading zones:', zonesError);
+  if (lgasError) console.error('Error loading LGAs:', lgasError);
 
-  // 6) Load per-MDA aggregate budget (optional)
-  const { data: budgets, error: budgetsError } = await supabase
+    // 6) Load per-MDA aggregate budget
+    const { data: budgets, error: budgetsError } = await supabase
     .from('mda_budgets')
     .select('year, approved_ntr')
     .eq('mda_id', currentMdaId)
@@ -242,14 +243,106 @@ function closeRevenueSourceModal() {
     console.error('Error loading mda_budgets:', budgetsError);
   }
 
+  // 7) Load officers for this MDA: user_scopes + profiles (2-step)
+  const { data: scopes, error: scopesError } = await supabase
+    .from('user_scopes')
+    .select('id, user_id, mda_id, zone_id, lga_id')
+    .eq('mda_id', currentMdaId);
+
+  if (scopesError) {
+    console.error('Error loading MDA scopes:', scopesError);
+  }
+
+  let officersProfiles = [];
+  if (scopes && scopes.length > 0) {
+    const userIds = [...new Set(scopes.map((s) => s.user_id))];
+
+    const { data: profilesForMda, error: profilesError } = await supabase
+      .from('profiles')
+      .select('user_id, email, full_name, global_role')
+      .in('user_id', userIds);
+
+    if (profilesError) {
+      console.error('Error loading officer profiles:', profilesError);
+    } else {
+      officersProfiles = profilesForMda || [];
+    }
+  }
+
   // Render all sections
   renderRevenueSourcesTable();
   renderZoneTable(zones || []);
   renderLgaTable(lgas || []);
   renderSummaryCards(budgets || []);
+  renderOfficersTable(scopes || [], officersProfiles);
+
 })();
 
 // Rendering
+function renderOfficersTable(scopes, profiles) {
+    if (!officersTableBody) return;
+  
+    officersTableBody.innerHTML = '';
+  
+    if (!scopes || scopes.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.className = 'px-3 py-4 text-center text-slate-500';
+      td.textContent = 'No officers currently assigned to this MDA.';
+      tr.appendChild(td);
+      officersTableBody.appendChild(tr);
+      return;
+    }
+  
+    // Map user_id -> profile for quick lookup
+    const profileByUserId = {};
+    (profiles || []).forEach((p) => {
+      profileByUserId[p.user_id] = p;
+    });
+  
+    scopes.forEach((scope) => {
+      const profile = profileByUserId[scope.user_id];
+      if (!profile) return;
+  
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50';
+  
+      const tdName = document.createElement('td');
+      tdName.className = 'px-3 py-2 align-middle';
+      tdName.textContent = profile.full_name || profile.email || '—';
+      tr.appendChild(tdName);
+  
+      const tdEmail = document.createElement('td');
+      tdEmail.className = 'px-3 py-2 align-middle text-slate-700';
+      tdEmail.textContent = profile.email || '—';
+      tr.appendChild(tdEmail);
+  
+      const tdRole = document.createElement('td');
+      tdRole.className = 'px-3 py-2 align-middle';
+      tdRole.textContent = profile.global_role === 'admin' ? 'Administrator' : 'MDA user';
+      tr.appendChild(tdRole);
+  
+      const tdAssignment = document.createElement('td');
+      tdAssignment.className = 'px-3 py-2 align-middle text-right text-[11px] text-slate-600';
+  
+      let assignment = 'MDA-wide';
+      if (scope.zone_id && scope.lga_id) {
+        assignment = `Zone ${scope.zone_id} / LGA ${scope.lga_id}`;
+      } else if (scope.zone_id) {
+        assignment = `Zone ${scope.zone_id}`;
+      } else if (scope.lga_id) {
+        assignment = `LGA ${scope.lga_id}`;
+      }
+  
+      tdAssignment.textContent = assignment;
+      tr.appendChild(tdAssignment);
+  
+      officersTableBody.appendChild(tr);
+    });
+  }
+  
+
 function renderRevenueSourcesTable() {
   if (!revenueSourcesTableBody) return;
 
@@ -275,7 +368,6 @@ function renderRevenueSourcesTable() {
     totalApproved += approved;
     totalCollected += collected;
 
-    // Remaining budget = approved minus collected
     const variance = approved - collected;
 
     const tr = document.createElement('tr');
@@ -320,12 +412,9 @@ function renderRevenueSourcesTable() {
 
     tdActions.appendChild(editBtn);
     tr.appendChild(tdActions);
-
     revenueSourcesTableBody.appendChild(tr);
   });
 
-
-  // Update summary cards main totals based on sources
   if (cardApprovedBudget) cardApprovedBudget.textContent = formatCurrency(totalApproved);
   if (cardCollected) cardCollected.textContent = formatCurrency(totalCollected);
   if (cardPerformance) cardPerformance.textContent = formatPercent(totalCollected, totalApproved);
@@ -350,7 +439,6 @@ function renderZoneTable(zones) {
 
   zones.forEach((z) => {
     const total = revenuesByZone[z.id] || 0;
-    if (!total && total !== 0) return;
     anyData = anyData || total > 0;
 
     const tr = document.createElement('tr');
@@ -431,11 +519,9 @@ function renderLgaTable(lgas) {
 }
 
 function renderSummaryCards(mdaBudgets) {
-  // If you want to override total approved with mda_budgets, adjust here.
   if (!mdaBudgets || mdaBudgets.length === 0) {
     return;
   }
-  // Example: use most recent year just for info in pageMessage
   const latest = mdaBudgets[0];
   if (pageMessage) {
     pageMessage.textContent =
@@ -472,7 +558,6 @@ if (revenueSourceResetBtn) {
   });
 }
 
-// Save revenue source
 if (revenueSourceForm) {
   revenueSourceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -502,82 +587,81 @@ if (revenueSourceForm) {
     revenueSourceFormMessage.textContent = '';
 
     try {
-        if (revenueSourceIdInput.value) {
-          const id = Number(revenueSourceIdInput.value);
-          const { error } = await supabase
-            .from('revenue_sources')
-            .update({
-              name,
-              code,
-              approved_budget,
-              budget_year
-            })
-            .eq('id', id);
-  
-          if (error) {
-            console.error('Update revenue source error:', error);
-            if (error.code === '23505') {
-              revenueSourceFormMessage.textContent =
-                'This code is already used for this MDA. Please choose a different code.';
-            } else if (
-              error.code === '42501' ||
-              (typeof error.message === 'string' &&
-                error.message.toLowerCase().includes('rls'))
-            ) {
-              revenueSourceFormMessage.textContent =
-                'You are not allowed to update revenue sources. Contact the system administrator.';
-            } else {
-              revenueSourceFormMessage.textContent =
-                'Unable to update revenue source. Please try again.';
-            }
+      if (revenueSourceIdInput.value) {
+        const id = Number(revenueSourceIdInput.value);
+        const { error } = await supabase
+          .from('revenue_sources')
+          .update({
+            name,
+            code,
+            approved_budget,
+            budget_year
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error('Update revenue source error:', error);
+          if (error.code === '23505') {
+            revenueSourceFormMessage.textContent =
+              'This code is already used for this MDA. Please choose a different code.';
+          } else if (
+            error.code === '42501' ||
+            (typeof error.message === 'string' &&
+              error.message.toLowerCase().includes('rls'))
+          ) {
+            revenueSourceFormMessage.textContent =
+              'You are not allowed to update revenue sources. Contact the system administrator.';
           } else {
-            window.location.reload();
+            revenueSourceFormMessage.textContent =
+              'Unable to update revenue source. Please try again.';
           }
         } else {
-          const { error } = await supabase
-            .from('revenue_sources')
-            .insert({
-              mda_id: currentMdaId,
-              name,
-              code,
-              approved_budget,
-              budget_year
-            });
-  
-          if (error) {
-            console.error('Insert revenue source error:', error);
-            if (error.code === '23505') {
-              revenueSourceFormMessage.textContent =
-                'This code is already used for this MDA. Please choose a different code.';
-            } else if (
-              error.code === '42501' ||
-              (typeof error.message === 'string' &&
-                error.message.toLowerCase().includes('rls'))
-            ) {
-              revenueSourceFormMessage.textContent =
-                'You are not allowed to create revenue sources. Contact the system administrator.';
-            } else {
-              revenueSourceFormMessage.textContent =
-                'Unable to create revenue source. Please try again.';
-            }
-          } else {
-            window.location.reload();
-          }
+          window.location.reload();
         }
-      } catch (err) {
-        console.error('Unexpected revenue source save error:', err);
-        revenueSourceFormMessage.textContent =
-          'Unexpected error while saving. Please try again.';
-      } finally {
-        revenueSourceSubmitBtn.disabled = false;
-        revenueSourceSubmitLabel.textContent = revenueSourceIdInput.value
-          ? 'Update source'
-          : 'Save source';
-      }  
+      } else {
+        const { error } = await supabase
+          .from('revenue_sources')
+          .insert({
+            mda_id: currentMdaId,
+            name,
+            code,
+            approved_budget,
+            budget_year
+          });
+
+        if (error) {
+          console.error('Insert revenue source error:', error);
+          if (error.code === '23505') {
+            revenueSourceFormMessage.textContent =
+              'This code is already used for this MDA. Please choose a different code.';
+          } else if (
+            error.code === '42501' ||
+            (typeof error.message === 'string' &&
+              error.message.toLowerCase().includes('rls'))
+          ) {
+            revenueSourceFormMessage.textContent =
+              'You are not allowed to create revenue sources. Contact the system administrator.';
+          } else {
+            revenueSourceFormMessage.textContent =
+              'Unable to create revenue source. Please try again.';
+          }
+        } else {
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected revenue source save error:', err);
+      revenueSourceFormMessage.textContent =
+        'Unexpected error while saving. Please try again.';
+    } finally {
+      revenueSourceSubmitBtn.disabled = false;
+      revenueSourceSubmitLabel.textContent = revenueSourceIdInput.value
+        ? 'Update source'
+        : 'Save source';
+    }
   });
 }
 
-// Basic report button placeholder
 if (btnGenerateReport) {
   btnGenerateReport.addEventListener('click', () => {
     alert('Reporting/export functionality will be implemented here (e.g. download Excel/PDF).');

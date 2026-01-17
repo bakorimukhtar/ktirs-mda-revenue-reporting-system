@@ -3,6 +3,7 @@
 // Sidebar toggle for mobile
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
+const logoutBtn = document.getElementById('logoutBtn')
 
 if (sidebar && sidebarToggle) {
   sidebarToggle.addEventListener('click', () => {
@@ -14,6 +15,29 @@ if (sidebar && sidebarToggle) {
     }
   });
 }
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      const supabase = window.supabaseClient;
+      if (!supabase) {
+        window.location.href = '../index.html';
+        return;
+      }
+  
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Logout error:', error);
+          alert('Unable to log out right now. Please try again.');
+          return;
+        }
+        window.location.href = '../index.html';
+      } catch (e) {
+        console.error('Unexpected logout error:', e);
+        window.location.href = '../index.html';
+      }
+    });
+  }
 
 // Set current year badge
 const yearBadge = document.getElementById('currentYearBadge');

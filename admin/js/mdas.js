@@ -1,6 +1,7 @@
 // DOM references
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
+const logoutBtn = document.getElementById('logoutBtn');
 
 const mdasTableBody = document.getElementById('mdasTableBody');
 const searchMda = document.getElementById('searchMda');
@@ -29,6 +30,28 @@ if (sidebar && sidebarToggle) {
   });
 }
 
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      const supabase = window.supabaseClient;
+      if (!supabase) {
+        window.location.href = '../index.html';
+        return;
+      }
+  
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Logout error:', error);
+          alert('Unable to log out right now. Please try again.');
+          return;
+        }
+        window.location.href = '../index.html';
+      } catch (e) {
+        console.error('Unexpected logout error:', e);
+        window.location.href = '../index.html';
+      }
+    });
+  }
 // -------------------------------------------------------------
 // Helpers
 // -------------------------------------------------------------

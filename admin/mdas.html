@@ -133,6 +133,44 @@
               <span>Dashboard Overview</span>
             </a>
           </li>
+
+          <!-- Reports -->
+      <li>
+        <a href="reports.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
+          </span>
+          <span>Reports</span>
+        </a>
+      </li>
+
+      <!-- Analytics -->
+      <li>
+        <a href="analytics.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+          </span>
+          <span>Analytics</span>
+        </a>
+      </li>
+
+      <!-- History & logs -->
+      <li>
+        <a href="history.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="history" class="w-4 h-4"></i>
+          </span>
+          <span>History & logs</span>
+        </a>
+      </li>
+
+      <!-- Divider -->
+      <li>
+        <div class="h-px bg-slate-200 my-2"></div>
+      </li>
           <li>
             <a href="mdas.html"
                class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 bg-slate-100 text-slate-900 font-medium">
@@ -151,33 +189,30 @@
               <span>Users & MDAs</span>
             </a>
           </li>
-          <li>
-            <a href="revenue-sources.html"
-               class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
-              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
-                <i data-lucide="file-text" class="w-4 h-4"></i>
-              </span>
-              <span>Revenue Sources & Codes</span>
-            </a>
-          </li>
-          <li>
-            <a href="budgets.html"
-               class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
-              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
-                <i data-lucide="wallet" class="w-4 h-4"></i>
-              </span>
-              <span>Approved Budgets (NTR)</span>
-            </a>
-          </li>
+    
         </ul>
       </div>
 
-      <div class="mt-auto px-3 py-3 border-t border-slate-200 text-[11px] text-slate-500">
-        <p>© Katsina State Government</p>
-        <p>Katsina State Internal Revenue Service (KTIRS)</p>
-        <p class="italic mt-0.5">Authorized Government System</p>
+      <div class="mt-auto px-3 py-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-2">
+        <button
+          id="logoutBtn"
+          type="button"
+          class="w-full inline-flex items-center justify-between rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex items-center gap-1">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Log out</span>
+          </span>
+          <span class="text-slate-400">Exit</span>
+        </button>
+    
+        <div>
+          <p>© Katsina State Government</p>
+          <p>Katsina State Internal Revenue Service (KTIRS)</p>
+          <p class="italic mt-0.5">Authorized Government System</p>
+        </div>
       </div>
     </nav>
+    
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 overflow-y-auto">

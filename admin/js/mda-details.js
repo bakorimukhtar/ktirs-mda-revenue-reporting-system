@@ -343,82 +343,119 @@ function renderOfficersTable(scopes, profiles) {
   }
   
 
+// Rendering
 function renderRevenueSourcesTable() {
-  if (!revenueSourcesTableBody) return;
-
-  revenueSourcesTableBody.innerHTML = '';
-
-  if (!revenueSources || revenueSources.length === 0) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 6;
-    td.className = 'px-3 py-4 text-center text-slate-500';
-    td.textContent = 'No revenue sources defined for this MDA yet.';
-    tr.appendChild(td);
-    revenueSourcesTableBody.appendChild(tr);
-    return;
-  }
-
-  let totalApproved = 0;
-  let totalCollected = 0;
-
-  revenueSources.forEach((src) => {
-    const collected = revenuesBySource[src.id] || 0;
-    const approved = Number(src.approved_budget || 0);
-    totalApproved += approved;
-    totalCollected += collected;
-
-    const variance = approved - collected;
-
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50';
-
-    const tdName = document.createElement('td');
-    tdName.className = 'px-3 py-2 align-middle';
-    tdName.textContent = src.name;
-    tr.appendChild(tdName);
-
-    const tdCode = document.createElement('td');
-    tdCode.className = 'px-3 py-2 align-middle text-slate-700';
-    tdCode.textContent = src.code;
-    tr.appendChild(tdCode);
-
-    const tdApproved = document.createElement('td');
-    tdApproved.className = 'px-3 py-2 align-middle text-right';
-    tdApproved.textContent = approved ? formatCurrency(approved) : '—';
-    tr.appendChild(tdApproved);
-
-    const tdCollected = document.createElement('td');
-    tdCollected.className = 'px-3 py-2 align-middle text-right';
-    tdCollected.textContent = collected ? formatCurrency(collected) : '₦0.00';
-    tr.appendChild(tdCollected);
-
-    const tdVariance = document.createElement('td');
-    tdVariance.className = 'px-3 py-2 align-middle text-right';
-    tdVariance.textContent = formatCurrency(variance);
-    tr.appendChild(tdVariance);
-
-    const tdActions = document.createElement('td');
-    tdActions.className = 'px-3 py-2 align-middle text-right text-[11px] space-x-2';
-
-    const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.className =
-      'inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', () => {
-      showRevenueSourceModal('edit', src);
+    if (!revenueSourcesTableBody) return;
+  
+    revenueSourcesTableBody.innerHTML = '';
+  
+    if (!revenueSources || revenueSources.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.className = 'px-3 py-4 text-center text-slate-500';
+      td.textContent = 'No revenue sources defined for this MDA yet.';
+      tr.appendChild(td);
+      revenueSourcesTableBody.appendChild(tr);
+      return;
+    }
+  
+    let totalApproved = 0;
+    let totalCollected = 0;
+  
+    revenueSources.forEach((src) => {
+      const collected = revenuesBySource[src.id] || 0;
+      const approved = Number(src.approved_budget || 0);
+      totalApproved += approved;
+      totalCollected += collected;
+  
+      const variance = approved - collected;
+  
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50';
+  
+      const tdName = document.createElement('td');
+      tdName.className = 'px-3 py-2 align-middle';
+      tdName.textContent = src.name;
+      tr.appendChild(tdName);
+  
+      const tdCode = document.createElement('td');
+      tdCode.className = 'px-3 py-2 align-middle text-slate-700';
+      tdCode.textContent = src.code;
+      tr.appendChild(tdCode);
+  
+      const tdApproved = document.createElement('td');
+      tdApproved.className = 'px-3 py-2 align-middle text-right';
+      tdApproved.textContent = approved ? formatCurrency(approved) : '—';
+      tr.appendChild(tdApproved);
+  
+      const tdCollected = document.createElement('td');
+      tdCollected.className = 'px-3 py-2 align-middle text-right';
+      tdCollected.textContent = collected ? formatCurrency(collected) : '₦0.00';
+      tr.appendChild(tdCollected);
+  
+      const tdVariance = document.createElement('td');
+      tdVariance.className = 'px-3 py-2 align-middle text-right';
+      tdVariance.textContent = formatCurrency(variance);
+      tr.appendChild(tdVariance);
+  
+      const tdActions = document.createElement('td');
+      tdActions.className = 'px-3 py-2 align-middle text-right text-[11px] space-x-2';
+  
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className =
+        'inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', () => {
+        showRevenueSourceModal('edit', src);
+      });
+  
+      tdActions.appendChild(editBtn);
+      tr.appendChild(tdActions);
+      revenueSourcesTableBody.appendChild(tr);
     });
-
-    tdActions.appendChild(editBtn);
-    tr.appendChild(tdActions);
-    revenueSourcesTableBody.appendChild(tr);
-  });
-
-  if (cardApprovedBudget) cardApprovedBudget.textContent = formatCurrency(totalApproved);
-  if (cardCollected) cardCollected.textContent = formatCurrency(totalCollected);
-  if (cardPerformance) cardPerformance.textContent = formatPercent(totalCollected, totalApproved);
-}
+  
+    // Update summary cards with REVENUE SOURCE totals (not MDA budgets)
+    if (cardApprovedBudget) cardApprovedBudget.textContent = formatCurrency(totalApproved);
+    if (cardCollected) cardCollected.textContent = formatCurrency(totalCollected);
+    if (cardPerformance) cardPerformance.textContent = formatPercent(totalCollected, totalApproved);
+  }
+  
+  function renderSummaryCards(mdaBudgets) {
+    // This function now handles MDA-level budget vs collections
+    if (!mdaBudgets || mdaBudgets.length === 0) {
+      if (pageMessage) {
+        pageMessage.textContent = 'No MDA budget configured for this year.';
+      }
+      return;
+    }
+  
+    const latest = mdaBudgets[0]; // Most recent year
+    const mdaApprovedBudget = Number(latest.approved_ntr || 0);
+    
+    // Total collected from ALL revenues for this MDA
+    const totalCollected = Object.values(revenuesBySource).reduce((sum, val) => sum + Number(val || 0), 0);
+    
+    // Variance = Approved - Collected
+    const variance = mdaApprovedBudget - totalCollected;
+    
+    // Performance = (Collected / Approved) * 100
+    const performance = mdaApprovedBudget > 0 
+      ? ((totalCollected / mdaApprovedBudget) * 100).toFixed(1)
+      : '0';
+  
+    if (pageMessage) {
+      pageMessage.innerHTML = `
+        <span class="font-semibold">MDA Budget Summary for ${latest.year}:</span>
+        <span class="ml-4">Approved: ${formatCurrency(mdaApprovedBudget)}</span>
+        <span class="ml-4">Collected: ${formatCurrency(totalCollected)}</span>
+        <span class="ml-4">Variance: ${formatCurrency(variance)}</span>
+        <span class="ml-4">Performance: ${performance}%</span>
+      `;
+    }
+  }
+  
 
 function renderZoneTable(zones) {
   if (!zoneTableBody) return;

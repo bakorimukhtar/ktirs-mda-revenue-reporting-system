@@ -1,8 +1,14 @@
+// js/user-new.js (Edge Function for edit + password + deactivate)
+// Create remains client-side because your deployed function has no "create" action. [web:60]
+
 const topbarUserName = document.getElementById('topbarUserName');
 const topbarUserInitial = document.getElementById('topbarUserInitial');
 
 const pageTitle = document.getElementById('pageTitle');
 const pageModeBadge = document.getElementById('pageModeBadge');
+
+const deleteUserBtn = document.getElementById('deleteUserBtn');
+const setPasswordBtn = document.getElementById('setPasswordBtn');
 
 const userForm = document.getElementById('userForm');
 const userIdHidden = document.getElementById('userIdHidden');
@@ -10,7 +16,11 @@ const userIdHidden = document.getElementById('userIdHidden');
 const fullNameInput = document.getElementById('fullName');
 const emailInput = document.getElementById('email');
 const roleSelect = document.getElementById('roleSelect');
+
+const primaryMdaWrap = document.getElementById('primaryMdaWrap');
 const primaryMdaSelect = document.getElementById('primaryMdaSelect');
+const primaryMdaHelp = document.getElementById('primaryMdaHelp');
+
 const passwordInput = document.getElementById('password');
 const confirmPasswordInput = document.getElementById('confirmPassword');
 const passwordHelpText = document.getElementById('passwordHelpText');
@@ -20,91 +30,249 @@ const userSubmitLabel = document.getElementById('userSubmitLabel');
 const userResetBtn = document.getElementById('userResetBtn');
 const userFormMessage = document.getElementById('userFormMessage');
 
-let allMdas = [];
 let isEditMode = false;
 
-// Util
+// -------- helpers --------
 function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
+  return new URLSearchParams(window.location.search).get(name);
 }
 
-// Init
-(async () => {
+function setMessage(msg, type = 'muted') {
+  if (!userFormMessage) return;
+  userFormMessage.textContent = msg || '';
+  userFormMessage.className = `text-[11px] mt-1 ${
+    type === 'error' ? 'text-red-600' :
+    type === 'success' ? 'text-emerald-700' :
+    'text-slate-500'
+  }`;
+}
+
+function setBusy(isBusy, label) {
+  if (userSubmitBtn) userSubmitBtn.disabled = !!isBusy;
+  if (userSubmitLabel && label) userSubmitLabel.textContent = label;
+}
+
+function updateRoleUI() {
+  const role = roleSelect?.value || 'mda_user';
+  const needsMda = role === 'mda_user';
+
+  if (primaryMdaWrap) primaryMdaWrap.classList.toggle('opacity-50', !needsMda);
+  if (primaryMdaSelect) {
+    primaryMdaSelect.disabled = !needsMda;
+    if (!needsMda) primaryMdaSelect.value = '';
+  }
+  if (primaryMdaHelp) {
+    primaryMdaHelp.textContent = needsMda
+      ? 'Required for MDA Revenue Officers.'
+      : 'Not required for Administrators.';
+  }
+}
+
+function readForm() {
+  return {
+    full_name: fullNameInput.value.trim(),
+    email: emailInput.value.trim().toLowerCase(),
+    global_role: roleSelect.value,
+    primary_mda_id: primaryMdaSelect.value ? Number(primaryMdaSelect.value) : null,
+  };
+}
+
+function validateBase(b) {
+  if (!b.full_name) return 'Please enter full name.';
+  if (!b.email) return 'Please enter official email.';
+  if (!b.global_role) return 'Please select role.';
+  if (b.global_role === 'mda_user' && !b.primary_mda_id) {
+    return 'Primary MDA is required for MDA Revenue Officer.';
+  }
+  return null;
+}
+
+function validatePasswordRequired() {
+  const p1 = passwordInput.value;
+  const p2 = confirmPasswordInput.value;
+  if (!p1 || !p2) return { ok: false, message: 'Enter password and confirm password.' };
+  if (p1 !== p2) return { ok: false, message: 'Passwords do not match.' };
+  if (p1.length < 8) return { ok: false, message: 'Password must be at least 8 characters.' };
+  return { ok: true, password: p1 };
+}
+
+function validatePasswordOptional() {
+  const p1 = passwordInput.value;
+  const p2 = confirmPasswordInput.value;
+
+  if (!p1 && !p2) return { ok: true, password: '' };
+  if (!p1 || !p2) return { ok: false, message: 'Enter password and confirm password.' };
+  if (p1 !== p2) return { ok: false, message: 'Passwords do not match.' };
+  if (p1.length < 8) return { ok: false, message: 'Password must be at least 8 characters.' };
+  return { ok: true, password: p1 };
+}
+
+async function callAdminUserFunction(payload) {
   const supabase = window.supabaseClient;
-  if (!supabase) {
-    if (userFormMessage) userFormMessage.textContent = 'System configuration error. Contact ICT.';
+
+  const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (sessErr || !token) throw new Error('Not authenticated');
+
+  const endpoint = 'https://imjstotwjyzahrednkcx.supabase.co/functions/v1/admin-user';
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) throw new Error(data?.details || data?.message || 'Request failed');
+  return data;
+}
+
+// -------- deactivate (Edge Function) --------
+window.confirmDeleteUser = async () => {
+  if (!confirm('Deactivate this user?\n\nThis will set role to inactive and remove scopes.')) return;
+
+  const targetId = userIdHidden.value;
+  if (!targetId) {
+    setMessage('No user selected.', 'error');
     return;
   }
 
-  // 1) Session & admin profile
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError || !sessionData.session || !sessionData.session.user) {
+  try {
+    setMessage('');
+    setBusy(true, 'Deactivating...');
+
+    await callAdminUserFunction({ action: 'deactivate', target_user_id: targetId });
+
+    setMessage('User deactivated successfully.', 'success');
+    setTimeout(() => (window.location.href = 'users.html'), 900);
+  } catch (e) {
+    console.error(e);
+    setMessage(e.message || 'Failed to deactivate.', 'error');
+    setBusy(false, 'Update user');
+  }
+};
+
+// -------- set password button (Edge Function update) --------
+if (setPasswordBtn) {
+  setPasswordBtn.addEventListener('click', async () => {
+    const targetId = userIdHidden.value;
+    if (!targetId) {
+      setMessage('Open a user in edit mode first.', 'error');
+      return;
+    }
+
+    const base = readForm();
+    const baseErr = validateBase(base);
+    if (baseErr) {
+      setMessage(baseErr, 'error');
+      return;
+    }
+
+    const pw = validatePasswordRequired();
+    if (!pw.ok) {
+      setMessage(pw.message, 'error');
+      return;
+    }
+
+    try {
+      setMessage('');
+      setPasswordBtn.disabled = true;
+
+      await callAdminUserFunction({
+        action: 'update',
+        target_user_id: targetId,
+        full_name: base.full_name,
+        email: base.email,
+        global_role: base.global_role,
+        primary_mda_id: base.global_role === 'mda_user' ? base.primary_mda_id : null,
+        new_password: pw.password, // Edge Function will call auth.admin.updateUserById server-side. [web:9]
+      });
+
+      passwordInput.value = '';
+      confirmPasswordInput.value = '';
+      setMessage('Password updated successfully.', 'success');
+    } catch (e) {
+      console.error(e);
+      setMessage(e.message || 'Failed to set password.', 'error');
+    } finally {
+      setPasswordBtn.disabled = false;
+    }
+  });
+}
+
+// -------- init --------
+(async () => {
+  const supabase = window.supabaseClient;
+  if (!supabase) {
+    setMessage('System configuration error.', 'error');
+    return;
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session?.user) {
     window.location.href = '../index.html';
     return;
   }
 
+  // Admin gate (read-only)
   const currentUser = sessionData.session.user;
-
-  const { data: profile, error: profileError } = await supabase
+  const { data: adminProfile, error: adminProfileError } = await supabase
     .from('profiles')
     .select('full_name, global_role')
     .eq('user_id', currentUser.id)
     .single();
 
-  if (profileError || !profile || profile.global_role !== 'admin') {
+  if (adminProfileError || !adminProfile || adminProfile.global_role !== 'admin') {
     window.location.href = '../index.html';
     return;
   }
 
-  const name =
-    profile.full_name && profile.full_name.trim().length > 0
-      ? profile.full_name.trim()
-      : currentUser.email || 'Admin User';
-  const initial = name.charAt(0).toUpperCase();
+  const adminName = (adminProfile.full_name || '').trim() || currentUser.email || 'Admin User';
+  if (topbarUserName) topbarUserName.textContent = adminName;
+  if (topbarUserInitial) topbarUserInitial.textContent = adminName.charAt(0).toUpperCase();
 
-  if (topbarUserName) topbarUserName.textContent = name;
-  if (topbarUserInitial) topbarUserInitial.textContent = initial;
-
-  // 2) Load MDAs
+  // Load MDAs (read-only)
   const { data: mdas, error: mdasError } = await supabase
     .from('mdas')
     .select('id, name')
     .order('name', { ascending: true });
 
   if (mdasError) {
-    console.error('Error loading MDAs for user page:', mdasError);
-    if (userFormMessage) {
-      userFormMessage.textContent = 'Unable to load MDAs. Please try again.';
-    }
+    setMessage('Unable to load MDAs.', 'error');
     return;
   }
 
-  allMdas = mdas || [];
-  allMdas.forEach((m) => {
+  (mdas || []).forEach((m) => {
     const opt = document.createElement('option');
     opt.value = String(m.id);
     opt.textContent = m.name;
     primaryMdaSelect.appendChild(opt);
   });
 
-  // 3) Determine mode (create / edit)
+  // Mode detection
   const userIdParam = getQueryParam('id');
   if (userIdParam) {
     isEditMode = true;
+
     if (pageTitle) pageTitle.textContent = 'Edit user';
     if (pageModeBadge) {
-      pageModeBadge.textContent = 'Edit user';
-      pageModeBadge.classList.remove('bg-slate-900');
-      pageModeBadge.classList.add('bg-amber-600');
+      pageModeBadge.textContent = 'Edit mode';
+      pageModeBadge.className =
+        'inline-flex items-center rounded-full bg-amber-600 text-slate-50 px-3 py-1 text-[11px] font-medium';
     }
     if (userSubmitLabel) userSubmitLabel.textContent = 'Update user';
+    if (deleteUserBtn) deleteUserBtn.classList.remove('hidden');
+    if (setPasswordBtn) setPasswordBtn.classList.remove('hidden');
+
     if (passwordHelpText) {
       passwordHelpText.textContent =
-        'Password changes are not done here. Ask the user to reset via login.';
+        'Edit mode: Enter a new password and click “Set password” (or enter it and click “Update user”).';
     }
 
-    // Load profile + primary scope
+    // Load user profile
     const { data: userProfile, error: userProfileError } = await supabase
       .from('profiles')
       .select('user_id, full_name, email, global_role')
@@ -112,259 +280,151 @@ function getQueryParam(name) {
       .single();
 
     if (userProfileError || !userProfile) {
-      console.error('Error loading user profile:', userProfileError);
-      if (userFormMessage) {
-        userFormMessage.textContent =
-          'Unable to load selected user. Return to list and try again.';
-      }
+      setMessage('Unable to load user.', 'error');
       return;
     }
 
-    const { data: scopes, error: scopesError } = await supabase
+    // Load a primary scope (read-only)
+    const { data: scopes } = await supabase
       .from('user_scopes')
-      .select('id, mda_id')
+      .select('mda_id')
       .eq('user_id', userIdParam)
-      .order('id', { ascending: true });
+      .limit(1);
 
-    if (scopesError) {
-      console.error('Error loading user scopes:', scopesError);
-    }
-
-    const primaryScope = scopes && scopes.length > 0 ? scopes[0] : null;
-
-    if (userIdHidden) userIdHidden.value = userProfile.user_id;
+    userIdHidden.value = userProfile.user_id;
     fullNameInput.value = userProfile.full_name || '';
-    emailInput.value = userProfile.email;
+    emailInput.value = userProfile.email || '';
     roleSelect.value = userProfile.global_role || 'mda_user';
-    if (primaryScope && primaryScope.mda_id) {
-      primaryMdaSelect.value = String(primaryScope.mda_id);
-    }
-
-    passwordInput.value = '';
-    confirmPasswordInput.value = '';
-    passwordInput.disabled = true;
-    confirmPasswordInput.disabled = true;
+    if (scopes?.[0]?.mda_id) primaryMdaSelect.value = String(scopes[0].mda_id);
   } else {
     isEditMode = false;
+
     if (userSubmitLabel) userSubmitLabel.textContent = 'Create user';
-    if (passwordHelpText) {
-      passwordHelpText.textContent = 'Required when creating a new user.';
-    }
+    if (passwordHelpText) passwordHelpText.textContent = 'Create mode: password is required.';
+    roleSelect.value = 'mda_user';
   }
+
+  updateRoleUI();
 })();
 
-// Submit
+if (roleSelect) roleSelect.addEventListener('change', updateRoleUI);
+
+// -------- submit (create or edit) --------
 if (userForm) {
   userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const supabase = window.supabaseClient;
-    if (!supabase) return;
-
-    userFormMessage.textContent = '';
-    userSubmitBtn.disabled = true;
-    userSubmitLabel.textContent = isEditMode ? 'Updating...' : 'Creating...';
-
-    const fullName = fullNameInput.value.trim();
-    const email = emailInput.value.trim().toLowerCase();
-    const role = roleSelect.value;
-    const primaryMdaId = primaryMdaSelect.value ? Number(primaryMdaSelect.value) : null;
-    const password = passwordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
-
-    if (!fullName) {
-      userFormMessage.textContent = 'Please enter full name.';
-      resetButtonState();
-      return;
-    }
-    if (!email) {
-      userFormMessage.textContent = 'Please enter official email.';
-      resetButtonState();
-      return;
-    }
-    if (!role) {
-      userFormMessage.textContent = 'Please select a role.';
-      resetButtonState();
-      return;
-    }
-    if (!primaryMdaId) {
-      userFormMessage.textContent = 'Please select a primary MDA.';
-      resetButtonState();
-      return;
-    }
-
-    if (!isEditMode) {
-      if (!password || !confirmPassword) {
-        userFormMessage.textContent = 'Please enter and confirm the password.';
-        resetButtonState();
-        return;
-      }
-      if (password !== confirmPassword) {
-        userFormMessage.textContent = 'Passwords do not match.';
-        resetButtonState();
-        return;
-      }
-    }
 
     try {
-      if (isEditMode && userIdHidden.value) {
-        const userId = userIdHidden.value;
+      setMessage('');
+      setBusy(true, isEditMode ? 'Updating...' : 'Creating...');
 
-        // 1) Update profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            email,
-            global_role: role
-          })
-          .eq('user_id', userId);
+      const base = readForm();
+      const baseErr = validateBase(base);
+      if (baseErr) {
+        setMessage(baseErr, 'error');
+        setBusy(false, isEditMode ? 'Update user' : 'Create user');
+        return;
+      }
 
-        if (profileError) {
-          console.error('Update profile error:', profileError);
-          userFormMessage.textContent =
-            'Unable to update user profile. Please try again.';
-          resetButtonState('Update user');
+      if (isEditMode) {
+        // EDIT: only Edge Function writes (avoids user_scopes RLS) [web:9]
+        const pw = validatePasswordOptional();
+        if (!pw.ok) {
+          setMessage(pw.message, 'error');
+          setBusy(false, 'Update user');
           return;
         }
 
-        // 2) Update primary scope
-        const { data: scopes, error: scopesError } = await supabase
-          .from('user_scopes')
-          .select('id')
-          .eq('user_id', userId)
-          .order('id', { ascending: true });
-
-        if (scopesError) {
-          console.error('Load scopes for update error:', scopesError);
-        }
-
-        if (scopes && scopes.length > 0) {
-          const firstScopeId = scopes[0].id;
-          const { error: scopeUpdateError } = await supabase
-            .from('user_scopes')
-            .update({
-              mda_id: primaryMdaId,
-              zone_id: null,
-              lga_id: null
-            })
-            .eq('id', firstScopeId);
-
-          if (scopeUpdateError) {
-            console.error('Update user scope error:', scopeUpdateError);
-            userFormMessage.textContent =
-              'User updated, but unable to update MDA scope.';
-            resetButtonState('Update user');
-            return;
-          }
-        } else {
-          const { error: scopeInsertError } = await supabase
-            .from('user_scopes')
-            .insert({
-              user_id: userId,
-              mda_id: primaryMdaId,
-              zone_id: null,
-              lga_id: null
-            });
-          if (scopeInsertError) {
-            console.error('Insert user scope error:', scopeInsertError);
-            userFormMessage.textContent =
-              'User updated, but unable to create MDA scope.';
-            resetButtonState('Update user');
-            return;
-          }
-        }
-
-        window.location.href = 'users.html';
-      } else {
-        // CREATE MODE using signUp
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: null
-          }
+        await callAdminUserFunction({
+          action: 'update',
+          target_user_id: userIdHidden.value,
+          full_name: base.full_name,
+          email: base.email,
+          global_role: base.global_role,
+          primary_mda_id: base.global_role === 'mda_user' ? base.primary_mda_id : null,
+          new_password: pw.password ? pw.password : undefined,
         });
 
-        if (signUpError || !signUpData || !signUpData.user) {
-          console.error('Create auth user error:', signUpError);
-          const msg =
-            signUpError && signUpError.message
-              ? signUpError.message
-              : 'Unable to create authentication account. Please try again.';
-          userFormMessage.textContent = msg;
-          resetButtonState('Create user');
-          return;
-        }
-
-        const newUser = signUpData.user;
-
-        const { error: profileInsertError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: newUser.id,
-            email,
-            full_name: fullName,
-            global_role: role
-          });
-
-        if (profileInsertError) {
-          console.error('Insert profile error:', profileInsertError);
-          userFormMessage.textContent =
-            'Account created, but unable to save profile.';
-          resetButtonState('Create user');
-          return;
-        }
-
-        const { error: scopeInsertError } = await supabase
-          .from('user_scopes')
-          .insert({
-            user_id: newUser.id,
-            mda_id: primaryMdaId,
-            zone_id: null,
-            lga_id: null
-          });
-
-        if (scopeInsertError) {
-          console.error('Insert user scope error:', scopeInsertError);
-          userFormMessage.textContent =
-            'User created, but unable to assign MDA scope.';
-          resetButtonState('Create user');
-          return;
-        }
-
-        window.location.href = 'users.html';
+        setMessage('User updated successfully.', 'success');
+        setTimeout(() => (window.location.href = 'users.html'), 900);
+        return;
       }
+
+      // CREATE (client-side, since your function has no create action) [web:60]
+      const pw = validatePasswordRequired();
+      if (!pw.ok) {
+        setMessage(pw.message, 'error');
+        setBusy(false, 'Create user');
+        return;
+      }
+
+      // Preserve admin session (signUp may return a session for the new user)
+      const { data: adminSession } = await supabase.auth.getSession();
+      const adminAccess = adminSession?.session?.access_token || null;
+      const adminRefresh = adminSession?.session?.refresh_token || null;
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: base.email,
+        password: pw.password,
+        options: { emailRedirectTo: null },
+      });
+
+      if (signUpError || !signUpData?.user) {
+        throw signUpError || new Error('Unable to create auth user.');
+      }
+
+      // Restore admin session if signUp created a new session
+      if (signUpData.session && adminAccess && adminRefresh) {
+        await supabase.auth.setSession({ access_token: adminAccess, refresh_token: adminRefresh });
+      }
+
+      const newUser = signUpData.user;
+
+      // Insert profile (this depends on your profiles RLS policy)
+      const { error: profErr } = await supabase.from('profiles').insert({
+        user_id: newUser.id,
+        email: base.email,
+        full_name: base.full_name,
+        global_role: base.global_role,
+      });
+      if (profErr) throw profErr;
+
+      // Insert scope for mda_user (this depends on your user_scopes RLS policy)
+      if (base.global_role === 'mda_user') {
+        const { error: scopeErr } = await supabase.from('user_scopes').insert({
+          user_id: newUser.id,
+          mda_id: base.primary_mda_id,
+          zone_id: null,
+          lga_id: null,
+        });
+        if (scopeErr) throw scopeErr;
+      }
+
+      setMessage('User created successfully.', 'success');
+      setTimeout(() => (window.location.href = 'users.html'), 900);
     } catch (err) {
-      console.error('Unexpected user save error:', err);
-      userFormMessage.textContent =
-        'Unexpected error while saving user. Please try again.';
-      resetButtonState(isEditMode ? 'Update user' : 'Create user');
+      console.error(err);
+      setMessage(err?.message || 'Operation failed.', 'error');
+      setBusy(false, isEditMode ? 'Update user' : 'Create user');
     }
   });
 }
 
 // Reset
-function resetButtonState(labelOverride) {
-  userSubmitBtn.disabled = false;
-  if (userSubmitLabel) {
-    userSubmitLabel.textContent =
-      labelOverride || (isEditMode ? 'Update user' : 'Create user');
-  }
-}
-
 if (userResetBtn) {
   userResetBtn.addEventListener('click', () => {
-    userFormMessage.textContent = '';
-    if (isEditMode) {
-      window.location.reload();
-    } else {
+    setMessage('');
+    if (isEditMode) window.location.reload();
+    else {
       fullNameInput.value = '';
       emailInput.value = '';
       roleSelect.value = 'mda_user';
       primaryMdaSelect.value = '';
       passwordInput.value = '';
       confirmPasswordInput.value = '';
+      updateRoleUI();
     }
   });
 }

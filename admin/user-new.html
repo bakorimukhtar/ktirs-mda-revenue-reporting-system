@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – Register User</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root { --kirs-green:#0b4f3c; --kirs-navy:#16324f; }
+    body { font-family:'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="Katsina State Internal Revenue Service Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">MDA Revenue Reporting System (NTR)</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+          <button
+            id="userMenuBtn"
+            type="button"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- Back link + actions -->
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          onclick="window.location.href='users.html'"
+          class="inline-flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Back to Users & MDAs</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <span
+            id="pageModeBadge"
+            class="inline-flex items-center rounded-full bg-slate-900 text-slate-50 px-3 py-1 text-[11px] font-medium">
+            New user
+          </span>
+
+          <!-- edit-mode only (JS unhides) -->
+          <button
+            type="button"
+            id="setPasswordBtn"
+            class="hidden inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white text-slate-700 px-3 py-1 text-[11px] font-medium hover:bg-slate-50">
+            <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+            <span>Set password</span>
+          </button>
+
+          <!-- edit-mode only (JS unhides) -->
+          <button
+            type="button"
+            id="deleteUserBtn"
+            class="hidden inline-flex items-center gap-1 rounded-md bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[11px] font-medium"
+            onclick="confirmDeleteUser()">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Deactivate</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">Register new user</h1>
+        <p class="text-sm text-slate-600">
+          Create or manage users and assign access for NTR reporting.
+        </p>
+      </div>
+
+      <!-- Form card -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs space-y-4">
+        <form id="userForm" class="space-y-4" novalidate>
+          <input type="hidden" id="userIdHidden" />
+
+          <!-- Name + email -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="fullName" class="block mb-1 text-slate-700">Full name</label>
+              <input
+                type="text"
+                id="fullName"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. Revenue Officer - Health" />
+              <p class="mt-1 text-[11px] text-slate-500">
+                The name that will appear on reports and dashboard.
+              </p>
+            </div>
+
+            <div>
+              <label for="email" class="block mb-1 text-slate-700">Official email</label>
+              <input
+                type="email"
+                id="email"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. officer@example.gov.ng" />
+              <p class="mt-1 text-[11px] text-slate-500">
+                Used for sign-in. Changing it will update Supabase Auth (via the Edge Function).
+              </p>
+            </div>
+          </div>
+
+          <!-- Role + Primary MDA -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="roleSelect" class="block mb-1 text-slate-700">Role</label>
+              <select
+                id="roleSelect"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="mda_user">MDA Revenue Officer</option>
+                <option value="admin">Administrator</option>
+              </select>
+              <p class="mt-1 text-[11px] text-slate-500">
+                Admins do not need MDA scopes; MDA officers require Primary MDA.
+              </p>
+            </div>
+
+            <div id="primaryMdaWrap">
+              <label for="primaryMdaSelect" class="block mb-1 text-slate-700">Primary MDA</label>
+              <select
+                id="primaryMdaSelect"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="">Select primary MDA</option>
+              </select>
+              <p class="mt-1 text-[11px] text-slate-500" id="primaryMdaHelp">
+                Required for MDA Revenue Officers. Not required for Administrators.
+              </p>
+            </div>
+
+            <!-- NEW: Primary Branch -->
+            <div id="primaryBranchWrap" class="md:col-span-2">
+              <label for="primaryBranchSelect" class="block mb-1 text-slate-700">Primary Branch</label>
+              <select
+                id="primaryBranchSelect"
+                disabled
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="">Select branch (if applicable)</option>
+              </select>
+              <p class="mt-1 text-[11px] text-slate-500" id="primaryBranchHelp">
+                If the selected MDA has branches, you must choose a branch. If no branches exist, the officer will be assigned MDA-wide (HQ).
+              </p>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="password" class="block mb-1 text-slate-700">Password</label>
+              <input
+                type="password"
+                id="password"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="Enter new password" />
+              <p class="mt-1 text-[11px] text-slate-500" id="passwordHelpText">
+                Create mode: required. Edit mode: type new password then click “Set password” or “Update user”.
+              </p>
+            </div>
+
+            <div>
+              <label for="confirmPassword" class="block mb-1 text-slate-700">Confirm password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="Retype password" />
+            </div>
+          </div>
+
+          <!-- Info note -->
+          <div class="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">
+            MDA access is enforced by <span class="font-semibold">user_scopes</span> (MDA-wide or branch-specific).
+            Deactivating a user sets their role to inactive and clears scopes.
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between gap-2 pt-2">
+            <button
+              type="submit"
+              id="userSubmitBtn"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 py-2 text-xs font-medium hover:bg-slate-800">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span id="userSubmitLabel">Create user</span>
+            </button>
+
+            <button
+              type="button"
+              id="userResetBtn"
+              class="text-[11px] text-slate-600 hover:text-slate-800">
+              Clear form
+            </button>
+          </div>
+
+          <p id="userFormMessage" class="text-[11px] text-slate-500 mt-1"></p>
+        </form>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/user-new.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

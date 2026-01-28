@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – Register MDA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --kirs-green: #0b4f3c;
+      --kirs-navy: #16324f;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .brand-gradient {
+      background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green));
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img
+              src="../assets/images/katsina-state-logo.png"
+              alt="Katsina State Government Logo"
+              class="h-10 w-auto object-contain"
+            />
+            <img
+              src="../assets/images/katsina-irs-logo.png"
+              alt="Katsina State Internal Revenue Service Logo"
+              class="h-10 w-auto object-contain"
+            />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">
+              Katsina State Government
+            </span>
+            <span class="text-sm font-semibold">
+              Katsina State Internal Revenue Service (KTIRS)
+            </span>
+            <span class="text-[11px] text-slate-200">
+              MDA Revenue Reporting System (NTR)
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+          <button
+            id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition"
+          >
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT (no sidebar) -->
+  <main class="flex-1">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- Back link -->
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          onclick="window.location.href='mdas.html'"
+          class="inline-flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900"
+        >
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Back to MDA Registry</span>
+        </button>
+        <span
+          id="pageModeBadge"
+          class="inline-flex items-center rounded-full bg-slate-900 text-slate-50 px-3 py-1 text-[11px] font-medium"
+        >
+          New MDA
+        </span>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">
+          Register new MDA
+        </h1>
+        <p class="text-sm text-slate-600">
+          Create a single, state-level MDA record. Branches (sub-MDAs) can be added once the MDA is saved.
+        </p>
+      </div>
+
+      <!-- MDA Form card -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs space-y-4">
+        <form id="mdaForm" class="space-y-4" novalidate>
+          <input type="hidden" id="mdaId" />
+
+          <!-- Basic identity -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="mdaName" class="block mb-1 text-slate-700">
+                MDA name
+              </label>
+              <input
+                type="text"
+                id="mdaName"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. High Court of Justice"
+              />
+              <p class="mt-1 text-[11px] text-slate-500">
+                Use the full official name as recognized by Katsina State Government.
+              </p>
+            </div>
+
+            <div>
+              <label for="mdaCode" class="block mb-1 text-slate-700">
+                Short code
+              </label>
+              <input
+                type="text"
+                id="mdaCode"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. HCJ"
+              />
+              <p class="mt-1 text-[11px] text-slate-500">
+                Short, unique code used in reports and revenue source codes.
+              </p>
+            </div>
+          </div>
+
+          <!-- Category + status -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="mdaCategory" class="block mb-1 text-slate-700">
+                Category
+              </label>
+              <select
+                id="mdaCategory"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="">Select category</option>
+                <option value="Ministry">Ministry</option>
+                <option value="Department">Department</option>
+                <option value="Agency">Agency</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="mdaStatus" class="block mb-1 text-slate-700">
+                Status
+              </label>
+              <select
+                id="mdaStatus"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Informational note -->
+          <div class="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">
+            This MDA record will be used across the state when capturing Non-Tax Revenue.
+            Branches under this MDA (e.g. High Court Daura, High Court Dutsinma) can be created below once the MDA is saved.
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between gap-2 pt-2">
+            <button
+              type="submit"
+              id="mdaSubmitBtn"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 py-2 text-xs font-medium hover:bg-slate-800"
+            >
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span id="mdaSubmitLabel">Save MDA</span>
+            </button>
+            <button
+              type="button"
+              id="mdaResetBtn"
+              class="text-[11px] text-slate-600 hover:text-slate-800"
+            >
+              Clear form
+            </button>
+          </div>
+
+          <p id="mdaFormMessage" class="text-[11px] text-slate-500 mt-1"></p>
+        </form>
+      </section>
+
+      <!-- Branches section (visible only when editing / MDA exists) -->
+      <section
+        id="branchesSection"
+        class="bg-white border border-slate-200 rounded-md p-4 text-xs space-y-4 hidden"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+              Branches (Sub-MDAs) for this MDA
+            </h2>
+            <p class="text-[11px] text-slate-600">
+              Use branches when the MDA operates multiple physical locations (e.g. High Court Daura, High Court Dutsinma).
+              If this MDA has no branches, officers will report directly at MDA level.
+            </p>
+          </div>
+        </div>
+
+        <!-- Branch form -->
+        <form id="branchForm" class="space-y-3" novalidate>
+          <input type="hidden" id="branchId" />
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="md:col-span-2">
+              <label for="branchName" class="block mb-1 text-slate-700">
+                Branch name
+              </label>
+              <input
+                type="text"
+                id="branchName"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. High Court Daura"
+              />
+            </div>
+            <div>
+              <label for="branchCode" class="block mb-1 text-slate-700">
+                Branch code (optional)
+              </label>
+              <input
+                type="text"
+                id="branchCode"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. HCJ-DAU"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <div class="flex items-center gap-2">
+              <button
+                type="submit"
+                id="branchSubmitBtn"
+                class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 py-2 text-xs font-medium hover:bg-slate-800"
+              >
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span id="branchSubmitLabel">Add branch</span>
+              </button>
+              <button
+                type="button"
+                id="branchResetBtn"
+                class="text-[11px] text-slate-600 hover:text-slate-800"
+              >
+                Clear branch form
+              </button>
+            </div>
+            <p id="branchFormMessage" class="text-[11px] text-slate-500"></p>
+          </div>
+        </form>
+
+        <!-- Branches table -->
+        <div class="border border-slate-200 rounded-md overflow-hidden">
+          <table class="min-w-full border-collapse text-[11px]">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-3 py-2 text-left font-medium text-slate-600">Branch name</th>
+                <th class="px-3 py-2 text-left font-medium text-slate-600">Code</th>
+                <th class="px-3 py-2 text-left font-medium text-slate-600">Status</th>
+                <th class="px-3 py-2 text-right font-medium text-slate-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="branchesTableBody" class="divide-y divide-slate-100 bg-white">
+              <!-- Rows injected by JS -->
+            </tbody>
+          </table>
+          <div
+            id="branchesEmptyState"
+            class="px-3 py-3 text-[11px] text-slate-500 hidden"
+          >
+            No branches have been registered for this MDA yet.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/mda-new.js"></script>
+<script>
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>

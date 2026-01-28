@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – MDA Registry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --kirs-green: #0b4f3c;
+      --kirs-navy: #16324f;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .brand-gradient {
+      background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green));
+    }
+    .table-wrapper {
+      position: relative;
+    }
+    .table-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 16px;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to left, rgba(15, 23, 42, 0.06), transparent);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png"
+                 alt="Katsina State Government Logo"
+                 class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png"
+                 alt="Katsina State Internal Revenue Service Logo"
+                 class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">
+              Katsina State Government
+            </span>
+            <span class="text-sm font-semibold">
+              Katsina State Internal Revenue Service (KTIRS)
+            </span>
+            <span class="text-[11px] text-slate-200">
+              MDA Revenue Reporting System (NTR)
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+          <button
+            id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+          <button
+            id="sidebarToggle"
+            class="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/30 hover:bg-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="h-5 w-5"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <nav
+      id="sidebar"
+      class="bg-white border-r border-slate-200 w-64 flex-shrink-0 flex flex-col
+             transform transition-transform duration-150 ease-out
+             -translate-x-full sm:translate-x-0 fixed sm:static inset-y-0 z-30">
+
+      <div class="px-4 pt-4 pb-3 border-b border-slate-200">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          Authority & Operator
+        </p>
+        <p class="text-[13px] mt-1 text-slate-800">
+          Katsina State Government
+        </p>
+        <p class="text-[13px] text-slate-700">
+          Katsina State Internal Revenue Service (KTIRS)
+        </p>
+      </div>
+
+      <div class="px-3 py-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          Main navigation
+        </p>
+        <ul class="space-y-1 text-sm">
+          <li>
+            <a href="index.html"
+               class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              </span>
+              <span>Dashboard Overview</span>
+            </a>
+          </li>
+
+          <!-- Reports -->
+      <li>
+        <a href="reports.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
+          </span>
+          <span>Reports</span>
+        </a>
+      </li>
+
+      <!-- Analytics -->
+      <li>
+        <a href="analytics.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+          </span>
+          <span>Analytics</span>
+        </a>
+      </li>
+
+      <!-- History & logs -->
+      <li>
+        <a href="history.html"
+           class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+            <i data-lucide="history" class="w-4 h-4"></i>
+          </span>
+          <span>History & logs</span>
+        </a>
+      </li>
+
+      <!-- Divider -->
+      <li>
+        <div class="h-px bg-slate-200 my-2"></div>
+      </li>
+          <li>
+            <a href="mdas.html"
+               class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 bg-slate-100 text-slate-900 font-medium">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+                <i data-lucide="buildings" class="w-4 h-4"></i>
+              </span>
+              <span>MDA Registry</span>
+            </a>
+          </li>
+          <li>
+            <a href="users.html"
+               class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700">
+                <i data-lucide="users" class="w-4 h-4"></i>
+              </span>
+              <span>Users & MDAs</span>
+            </a>
+          </li>
+    
+        </ul>
+      </div>
+
+      <div class="mt-auto px-3 py-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-2">
+        <button
+          id="logoutBtn"
+          type="button"
+          class="w-full inline-flex items-center justify-between rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex items-center gap-1">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Log out</span>
+          </span>
+          <span class="text-slate-400">Exit</span>
+        </button>
+    
+        <div>
+          <p>© Katsina State Government</p>
+          <p>Katsina State Internal Revenue Service (KTIRS)</p>
+          <p class="italic mt-0.5">Authorized Government System</p>
+        </div>
+      </div>
+    </nav>
+    
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+        <!-- Header row -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">
+              MDA Registry
+            </h1>
+            <p class="text-sm text-slate-600">
+              Maintain the official list of MDAs for state-wide NTR reporting.
+            </p>
+          </div>
+          <button
+            type="button"
+            onclick="window.location.href='mda-new.html'"
+            class="inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-4 py-2 text-sm font-medium hover:bg-slate-800">
+            <i data-lucide="building-2" class="w-4 h-4"></i>
+            <span>Register new MDA</span>
+          </button>
+        </div>
+
+        <!-- MDAs list block -->
+        <section class="space-y-5">
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900">
+                  Registered MDAs
+                </h2>
+                <p class="text-xs text-slate-500">
+                  One record per MDA at state level. Zones and LGAs are applied at reporting time.
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input
+                  id="searchMda"
+                  type="text"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  placeholder="Search by name or code" />
+
+                <select
+                  id="filterCategory"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                  <option value="">All categories</option>
+                  <option value="Ministry">Ministries</option>
+                  <option value="Department">Departments</option>
+                  <option value="Agency">Agencies</option>
+                </select>
+
+                <select
+                  id="filterStatus"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+              <table class="min-w-full text-xs text-left">
+                <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">MDA name</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Short code</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Category</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="mdasTableBody" class="divide-y divide-slate-100">
+                <tr class="text-slate-500">
+                  <td colspan="5" class="px-3 py-4 text-center">
+                    Loading MDAs...
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/mdas.js"></script>
+<script>
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>

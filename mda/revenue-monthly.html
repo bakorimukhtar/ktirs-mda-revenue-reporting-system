@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – Revenue Source Monthly</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --kirs-green: #0b4f3c;
+      --kirs-navy: #16324f;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .brand-gradient {
+      background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green));
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png"
+                 alt="Katsina State Government Logo"
+                 class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png"
+                 alt="Katsina State Internal Revenue Service Logo"
+                 class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">
+              Katsina State Government
+            </span>
+            <span class="text-sm font-semibold">
+              Katsina State Internal Revenue Service (KTIRS)
+            </span>
+            <span class="text-[11px] text-slate-200">
+              MDA Revenue Reporting System (NTR)
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">MDA Officer</span>
+            <span class="text-slate-200" id="topbarMdaName">Loading MDA...</span>
+          </div>
+          <button
+            id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">O</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+
+      <!-- Header -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs space-y-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
+              Monthly entry – revenue source
+            </p>
+            <h1 class="text-lg font-semibold text-slate-900" id="pageTitle">
+              Loading revenue source...
+            </h1>
+            <p class="text-[11px] text-slate-600">
+              Capture Non-Tax Revenue (NTR) amounts for this source by month for your assigned MDA.
+            </p>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              id="btnBackToSources"
+              class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+              <span>Back to revenue sources</span>
+            </button>
+            <div class="px-3 py-1 rounded-full bg-slate-900 text-slate-50 text-[11px]">
+              Year: <span class="font-semibold" id="yearBadge">—</span>
+            </div>
+            <div class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100 text-[11px]">
+              Assigned MDA: <span class="font-semibold" id="assignedMdaBadge">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Source summary -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              Revenue source
+            </p>
+            <p class="text-[11px] text-slate-700" id="sourceCodeLabel">Code: —</p>
+            <p class="text-sm font-semibold text-slate-900" id="sourceNameLabel">Name</p>
+          </div>
+          <div class="border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              Approved budget
+            </p>
+            <p class="text-base font-semibold text-slate-900" id="approvedBudgetLabel">₦0.00</p>
+          </div>
+          <div class="border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              Total recorded (year)
+            </p>
+            <p class="text-base font-semibold text-slate-900" id="totalRecordedLabel">₦0.00</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monthly table -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-slate-900">
+            Monthly amounts
+          </h2>
+          <p class="text-[11px] text-slate-500">
+            View totals for each month and record or update entries for a selected month.
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full border border-slate-200 text-[11px]">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="border-b border-slate-200 px-2 py-1.5 text-left font-semibold text-slate-600">
+                  Month
+                </th>
+                <th class="border-b border-slate-200 px-2 py-1.5 text-right font-semibold text-slate-600">
+                  Currently recorded (₦)
+                </th>
+                <th class="border-b border-slate-200 px-2 py-1.5 text-right font-semibold text-slate-600">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody id="monthsTableBody">
+              <!-- rows via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/revenue-monthly.js"></script>
+<script>
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+</script>
+
+</body>
+</html>

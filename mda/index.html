@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – MDA Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Tailwind CDN (can later be compiled) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --kirs-green: #0b4f3c;
+      --kirs-navy: #16324f;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .brand-gradient {
+      background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green));
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <!-- Left: Logos + text -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png"
+                 alt="Katsina State Government Logo"
+                 class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png"
+                 alt="Katsina State Internal Revenue Service Logo"
+                 class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">
+              Katsina State Government
+            </span>
+            <span class="text-sm font-semibold">
+              Katsina State Internal Revenue Service (KTIRS)
+            </span>
+            <span class="text-[11px] text-slate-200">
+              MDA Revenue Reporting System (NTR)
+            </span>
+          </div>
+        </div>
+
+        <!-- Right: current user -->
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">MDA Officer</span>
+            <span class="text-slate-200" id="topbarMdaName">Loading MDA...</span>
+          </div>
+          <button
+            id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">O</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MDA navigation (top, mobile friendly) -->
+      <nav class="mt-2 pb-2 border-t border-white/20">
+        <ul class="flex flex-wrap gap-2 text-xs">
+          <li>
+            <a href="index.html"
+               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 text-white">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="revenue-sources.html"
+               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-white/10 text-slate-100">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+              <span>Revenue Sources</span>
+            </a>
+          </li>
+          <li>
+            <a href="history.html"
+               class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-white/10 text-slate-100">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>History</span>
+            </a>
+          </li>
+          <li class="ml-auto">
+            <button
+              id="btnLogout"
+              type="button"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+              <span>Sign out</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+      <!-- Heading -->
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">
+            MDA Dashboard
+          </h1>
+          <p class="text-sm text-slate-600" id="pageSubtitle">
+            Overview of your MDA’s Non-Tax Revenue (NTR) budget and reporting.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <div class="px-3 py-1 rounded-full bg-slate-900 text-slate-50">
+            Current Month: <span class="font-semibold" id="currentMonthBadge">—</span>
+          </div>
+          <div class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
+            Assigned MDA: <span class="font-semibold" id="assignedMdaBadge">Loading...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            Your MDA
+          </p>
+          <p class="text-base font-semibold text-slate-900" id="statMdaName">Loading...</p>
+          <p class="text-[11px] text-slate-500 mt-1" id="statMdaCode">
+            —
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            Approved NTR Budget
+          </p>
+          <p class="text-lg font-semibold text-slate-900" id="statApprovedBudget">
+            ₦0.00
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Sum of approved NTR budget across all revenue sources for this MDA.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+            This Month’s Reporting
+          </p>
+          <p class="text-sm font-semibold text-slate-900" id="statCurrentMonthLabel">
+            —
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1" id="statCurrentMonthHint">
+            Click below to record your monthly NTR for each revenue source.
+          </p>
+        </div>
+      </section>
+
+      <!-- Quick actions -->
+      <section class="bg-white border border-slate-200 rounded-md p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <h2 class="text-sm font-semibold text-slate-900">
+            Quick actions
+          </h2>
+          <button
+            id="btnRecordCurrentMonth"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 py-1.5 text-xs hover:bg-slate-800">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Record NTR for <span id="btnMonthLabel">this month</span></span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-600">
+          Use this action to go to the monthly NTR entry page for your assigned MDA.
+          You will be able to enter amounts for each revenue source, broken down by zone and LGA.
+        </p>
+      </section>
+
+      <!-- Placeholder for future widgets -->
+      <section class="bg-white border border-slate-200 rounded-md p-4">
+        <p class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-2">
+          Upcoming features
+        </p>
+        <ul class="list-disc pl-4 space-y-1 text-[11px] text-slate-600">
+          <li>Show last 3 months actual collections vs approved budget.</li>
+          <li>Highlight missing submissions (Not Submitted) by zone and LGA.</li>
+          <li>Provide export options for your MDA’s monthly reports.</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/index.js"></script>
+<script>
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+</script>
+
+</body>
+</html>

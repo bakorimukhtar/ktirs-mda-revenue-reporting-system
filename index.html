@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – Secure Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+<div class="container">
+
+  <!-- LEFT SECTION -->
+  <aside class="left-panel">
+    <div class="overlay">
+      <p class="left-kicker">Katsina State Government</p>
+      <h1 class="left-title">Katsina State Internal Revenue Service (KTIRS)</h1>
+      <p class="left-subtitle">MDA Revenue Reporting System (NTR)</p>
+
+      <div class="left-divider"></div>
+
+      <ul class="left-points">
+        <li>Secure access for authorized officers only</li>
+        <li>Non-Tax Revenue (NTR) monitoring and reporting</li>
+        <li>Official government information system</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- RIGHT SECTION -->
+  <main class="right-panel">
+
+    <!-- BRAND HEADER -->
+    <header class="brand-header">
+      <div class="brand-logos">
+        <div class="brand-logo-pair">
+          <img src="assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="brand-logo" />
+          <img src="assets/images/katsina-irs-logo.png" alt="Katsina State Internal Revenue Service Logo" class="brand-logo" />
+        </div>
+        <div class="brand-text">
+          <p class="brand-authority">Katsina State Government</p>
+          <p class="brand-operator">Katsina State Internal Revenue Service (KTIRS)</p>
+          <p class="brand-system">MDA Revenue Reporting System (NTR)</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- LOGIN CARD -->
+    <section class="login-card" aria-labelledby="loginTitle">
+      <h2 id="loginTitle">Secure Login</h2>
+      <p class="subtitle">Authorized personnel only</p>
+
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="email">Official Email Address</label>
+          <input type="email" id="email" autocomplete="username" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" required />
+        </div>
+
+        <div class="form-meta">
+          <div class="form-remember">
+            <input type="checkbox" id="rememberMe" />
+            <label for="rememberMe">Remember this device</label>
+          </div>
+          <a href="#" class="link-muted">Forgot password?</a>
+        </div>
+
+        <button type="submit" id="loginBtn" disabled>
+          Sign in
+        </button>
+
+        <p class="error" id="errorMsg" role="alert"></p>
+      </form>
+
+      <p class="login-note">
+        Use your assigned MDA or KTIRS credentials to access this system.
+      </p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="page-footer">
+      <p>© Katsina State Government</p>
+      <p>Katsina State Internal Revenue Service (KTIRS)</p>
+      <p class="footer-optional">Authorized Government System</p>
+    </footer>
+
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/login.js"></script>
+</body>
+</html>

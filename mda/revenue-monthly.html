@@ -83,7 +83,7 @@
               Loading revenue source...
             </h1>
             <p class="text-[11px] text-slate-600">
-              Capture Non-Tax Revenue (NTR) amounts for this source by month for your assigned MDA.
+              Capture Non-Tax Revenue (NTR) amounts for this source by month. Enter amounts directly or use detail page.
             </p>
           </div>
           <div class="flex flex-col items-end gap-1">
@@ -132,12 +132,24 @@
       <!-- Monthly table -->
       <section class="bg-white border border-slate-200 rounded-md p-4 text-xs">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-sm font-semibold text-slate-900">
-            Monthly amounts
-          </h2>
-          <p class="text-[11px] text-slate-500">
-            View totals for each month and record or update entries for a selected month.
-          </p>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">
+              Monthly amounts
+            </h2>
+            <p class="text-[11px] text-slate-500">
+              Enter amounts directly here or click "Details" for full entry page.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="btnSaveAll"
+              type="button"
+              class="inline-flex items-center gap-1 rounded-md bg-emerald-600 text-slate-50 px-3 py-1.5 text-[11px] hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed">
+              <i data-lucide="save-all" class="w-3.5 h-3.5"></i>
+              <span>Save all changes</span>
+            </button>
+            <p id="saveAllStatus" class="text-[11px] text-slate-500"></p>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -148,7 +160,7 @@
                   Month
                 </th>
                 <th class="border-b border-slate-200 px-2 py-1.5 text-right font-semibold text-slate-600">
-                  Currently recorded (₦)
+                  Amount (₦)
                 </th>
                 <th class="border-b border-slate-200 px-2 py-1.5 text-right font-semibold text-slate-600">
                   Actions

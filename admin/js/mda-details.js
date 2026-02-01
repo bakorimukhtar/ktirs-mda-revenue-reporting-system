@@ -770,6 +770,11 @@ if (revenueSourceForm) {
 
 if (btnGenerateReport) {
   btnGenerateReport.addEventListener('click', () => {
-    alert('Reporting/export functionality will be implemented here (e.g. download Excel/PDF).');
+    const id = currentMdaId || Number(getQueryParam('id') || 0);
+    if (!id) {
+      alert('Missing MDA id. Please go back and open this MDA again.');
+      return;
+    }
+    window.location.href = `mda-report.html?id=${encodeURIComponent(String(id))}`;
   });
 }

@@ -1,40 +1,35 @@
-// admin/js/reports.js (NTR - MDA Summary Report: Budget + Collected)
-// Budgets: SUM(revenue_source_budgets.approved_budget) for all sources under each MDA (per year)
-// Collected: SUM(revenues.amount) per MDA (year + optional month)
-// Exports (Excel/PDF): clean, professional MDA-level summary (no revenue source/code/records)
+// admin/js/mda-report.js
+// MDA-specific report page (revenue sources + budgets + collected) with month/all-month support.
 
 (() => {
   const sb = window.supabaseClient;
   if (!sb) throw new Error("window.supabaseClient missing");
 
-  // ===== CONFIG (PDF branding matches your sample) =====
+  // ===== Branding (reuse same as reports) =====
   const LOGO_URL = "../assets/images/katsina-irs-logo.png";
-
-  const BRAND_RED = [223, 38, 39];   // #df2627
-  const BRAND_GREEN = [67, 140, 80]; // #438c50
-  const BRAND_BLACK = [8, 6, 5];     // #080605
+  const BRAND_RED = [223, 38, 39];
+  const BRAND_GREEN = [67, 140, 80];
+  const BRAND_BLACK = [8, 6, 5];
 
   // ===== Elements =====
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
-  const logoutBtn = document.getElementById("logoutBtn");
-
   const topbarUserName = document.getElementById("topbarUserName");
   const topbarUserInitial = document.getElementById("topbarUserInitial");
 
+  const backBtn = document.getElementById("backToMdaDetailsBtn");
+  const pageTitle = document.getElementById("pageTitle");
+  const pageSubtitle = document.getElementById("pageSubtitle");
+
   const yearPicker = document.getElementById("yearPicker");
   const monthPicker = document.getElementById("monthPicker");
-  const viewMode = document.getElementById("viewMode"); // kept but we’ll map it to columns
-
-  const mdaFilter = document.getElementById("mdaFilter");
-  const searchBox = document.getElementById("searchBox");
+  const viewMode = document.getElementById("viewMode");
   const refreshBtn = document.getElementById("refreshBtn");
 
   const exportExcelBtn = document.getElementById("exportExcelBtn");
   const exportPdfBtn = document.getElementById("exportPdfBtn");
 
+  const searchBox = document.getElementById("searchBox");
   const statusText = document.getElementById("statusText");
+
   const cardPeriod = document.getElementById("cardPeriod");
   const cardScope = document.getElementById("cardScope");
   const cardRows = document.getElementById("cardRows");
@@ -68,16 +63,9 @@
     return months[m] || "";
   }
 
-  async function fetchAsDataURL(url) {
-    const res = await fetch(url, { cache: "no-cache" });
-    if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
-    const blob = await res.blob();
-    return await new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.onerror = reject;
-      r.readAsDataURL(blob);
-    });
+  function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
   }
 
   function debounce(fn, wait = 250) {
@@ -86,6 +74,19 @@
       clearTimeout(t);
       t = setTimeout(() => fn(...args), wait);
     };
+  }
+
+  function chunkArray(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  function populateYearSelect(el) {
+    const now = new Date().getFullYear();
+    const years = [now - 1, now, now + 1, now + 2];
+    el.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+    el.value = String(now);
   }
 
   function setExportsEnabled(on) {
@@ -104,32 +105,21 @@
     }
   }
 
-  function populateYearSelect(el) {
-    const now = new Date().getFullYear();
-    const years = [now - 1, now, now + 1, now + 2];
-    el.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
-    el.value = String(now);
+  async function fetchAsDataURL(url) {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
   }
 
-  function chunkArray(arr, size) {
-    const out = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
-  }
-
-  // ===== State =====
-  let selectedYear = new Date().getFullYear();
-  let selectedMonth = null;  // null => all months
-  let selectedView = "both"; // collected | budget | both (still supported)
-  let selectedMda = "all";   // all | mda_id string
-
-  let allMdas = [];
-  let currentRows = [];   // rows = MDA summary rows
-  let filteredRows = [];
-
-  // ===== Auth =====
-  async function requireAdmin() {
-    const { data: sessionData } = await sb.auth.getSession();
+  // ===== Auth (admin OR officer assigned to this MDA) =====
+  async function requireUser() {
+    const { data: sessionData } = await sb.auth.getSession(); // frontend ok [web:156]
     const user = sessionData?.session?.user;
     if (!user) { window.location.href = "../index.html"; return null; }
 
@@ -139,54 +129,45 @@
       .eq("user_id", user.id)
       .single();
 
-    if (!profile || profile.global_role !== "admin") {
-      window.location.href = "../index.html";
-      return null;
-    }
-
-    const name = (profile.full_name || "").trim() || user.email || "Admin User";
+    const name = (profile?.full_name || "").trim() || user.email || "User";
     if (topbarUserName) topbarUserName.textContent = name;
     if (topbarUserInitial) topbarUserInitial.textContent = name.charAt(0).toUpperCase();
+
     return { user, profile };
   }
 
-  // ===== Sidebar =====
-  function openSidebar() {
-    if (!sidebar) return;
-    sidebar.classList.remove("-translate-x-full");
-    if (sidebarBackdrop) sidebarBackdrop.classList.remove("hidden");
-  }
-  function closeSidebar() {
-    if (!sidebar) return;
-    sidebar.classList.add("-translate-x-full");
-    if (sidebarBackdrop) sidebarBackdrop.classList.add("hidden");
-  }
-  function setupSidebar() {
-    if (sidebarToggle) sidebarToggle.addEventListener("click", () => {
-      if (sidebar.classList.contains("-translate-x-full")) openSidebar();
-      else closeSidebar();
-    });
-    if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeSidebar);
-    window.addEventListener("resize", () => {
-      if (window.innerWidth >= 640) {
-        if (sidebarBackdrop) sidebarBackdrop.classList.add("hidden");
-        if (sidebar) sidebar.classList.remove("-translate-x-full");
-      } else {
-        if (sidebar) sidebar.classList.add("-translate-x-full");
-      }
-    });
+  // ===== State =====
+  const mdaId = Number(getQueryParam("id") || 0);
+  if (!mdaId) {
+    alert("Missing MDA id in URL. Open from MDA Details.");
+    window.location.href = "mdas.html";
+    return;
   }
 
-  async function logout() {
-    await sb.auth.signOut();
-    window.location.href = "../index.html";
-  }
+  let mdaInfo = null;
 
-  // ===== Labels =====
-  function getMdaLabel(mdaValue) {
-    if (mdaValue === "all") return "All MDAs";
-    const m = allMdas.find(x => String(x.id) === String(mdaValue));
-    return m ? `${m.name} (${m.code})` : `MDA ${mdaValue}`;
+  let selectedYear = new Date().getFullYear();
+  let selectedMonth = null; // null => all months
+  let selectedView = "both";
+
+  let currentRows = [];   // by revenue source for this MDA
+  let filteredRows = [];
+
+  // ===== Load MDA details for header =====
+  async function loadMdaHeader() {
+    const { data, error } = await sb
+      .from("mdas")
+      .select("id, name, code, category, is_active")
+      .eq("id", mdaId)
+      .single();
+
+    if (error) throw error;
+    mdaInfo = data;
+
+    const label = `${data.name} (${data.code})`;
+    if (pageTitle) pageTitle.textContent = label;
+    if (pageSubtitle) pageSubtitle.textContent = "Revenue by source for selected year/month (monthly summary).";
+    if (cardScope) cardScope.textContent = label;
   }
 
   function getPeriodLabel() {
@@ -201,185 +182,106 @@
       : "Collected + Budget";
   }
 
-  // ===== Data loaders =====
-  async function loadMdas() {
-    const { data, error } = await sb
-      .from("mdas")
-      .select("id, name, code, is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (error) throw error;
-    allMdas = data || [];
-
-    if (mdaFilter) {
-      const opts = [
-        `<option value="all">All MDAs</option>`,
-        ...allMdas.map(m => `<option value="${m.id}">${safeText(m.name)} (${safeText(m.code)})</option>`)
-      ];
-      mdaFilter.innerHTML = opts.join("");
-      mdaFilter.value = "all";
-    }
-  }
-
-  // Load all revenue source IDs under the selected MDA scope (or all MDAs)
-  async function loadRevenueSourcesForScope() {
-    let q = sb
-      .from("revenue_sources")
-      .select("id, mda_id")
-      .eq("is_active", true);
-
-    if (selectedMda !== "all") q = q.eq("mda_id", Number(selectedMda));
-
-    const { data, error } = await q;
-    if (error) throw error;
-
-    return (data || []).map(r => ({
-      id: Number(r.id),
-      mda_id: Number(r.mda_id)
-    })).filter(r => r.id && r.mda_id);
-  }
-
-  // Load budgets for a list of revenue_source_ids for selectedYear and aggregate to mda_id
-  async function loadBudgetsByMdaForYear(sourceRows) {
-    const budgetByMda = new Map(); // mda_id -> sum(approved_budget)
-
-    if (!Array.isArray(sourceRows) || sourceRows.length === 0) return budgetByMda;
-
-    const sourceIdToMda = new Map(sourceRows.map(s => [String(s.id), String(s.mda_id)]));
-    const sourceIds = sourceRows.map(s => s.id);
-
-    // Chunk to avoid URI too long (real issue) [web:129]
-    const chunks = chunkArray(sourceIds, 200);
-
-    for (const ids of chunks) {
-      const { data, error } = await sb
-        .from("revenue_source_budgets")
-        .select("revenue_source_id, approved_budget, budget_year")
-        .eq("budget_year", selectedYear)
-        .in("revenue_source_id", ids);
-
-      if (error) {
-        console.warn("Budget load error:", error);
-        continue;
-      }
-
-      (data || []).forEach(b => {
-        const sid = String(b.revenue_source_id);
-        const mdaId = sourceIdToMda.get(sid);
-        if (!mdaId) return;
-
-        const prev = budgetByMda.get(mdaId) || 0;
-        budgetByMda.set(mdaId, prev + Number(b.approved_budget || 0));
-      });
-    }
-
-    return budgetByMda;
-  }
-
-  // Load revenues for scope/year/month and aggregate to mda_id
-  async function loadCollectedByMda() {
-    // We only need mda_id + amount for aggregation
-    let q = sb
-      .from("revenues")
-      .select("mda_id, amount")
-      .eq("revenue_year", selectedYear);
-
-    if (selectedMonth) q = q.eq("revenue_month", selectedMonth);
-    if (selectedMda !== "all") q = q.eq("mda_id", Number(selectedMda));
-
-    const { data, error } = await q;
-    if (error) throw error;
-
-    const collectedByMda = new Map(); // mda_id -> sum(amount)
-    (data || []).forEach(r => {
-      const mdaId = String(r.mda_id);
-      const prev = collectedByMda.get(mdaId) || 0;
-      collectedByMda.set(mdaId, prev + Number(r.amount || 0));
-    });
-
-    return collectedByMda;
-  }
-
-  // ===== Report generation (MDA summary) =====
+  // ===== Report generation (per revenue source for this MDA) =====
   async function generateReport() {
     selectedYear = Number(yearPicker?.value) || selectedYear;
     selectedMonth = monthPicker?.value ? Number(monthPicker.value) : null;
     selectedView = viewMode?.value || selectedView;
-    selectedMda = mdaFilter?.value || "all";
-
-    if (!selectedYear) {
-      if (statusText) statusText.textContent = "Please select a year.";
-      return;
-    }
 
     setExportsEnabled(false);
     setLoading(`Loading report for ${selectedYear}…`);
 
-    try {
-      // Base MDAs in scope (so we show zeros)
-      const mdasInScope =
-        selectedMda === "all"
-          ? allMdas
-          : allMdas.filter(m => String(m.id) === String(selectedMda));
+    // 1) Load revenue sources (base rows so zeros show)
+    const { data: sources, error: sErr } = await sb
+      .from("revenue_sources")
+      .select("id, name, code, is_active")
+      .eq("is_active", true)
+      .eq("mda_id", mdaId)
+      .order("name", { ascending: true });
 
-      // 1) Get revenue sources (for mapping budgets to MDAs)
-      const sourceRows = await loadRevenueSourcesForScope();
+    if (sErr) throw sErr;
 
-      // 2) Budgets aggregated by MDA (sum of all source budgets)
-      const budgetByMda = await loadBudgetsByMdaForYear(sourceRows);
+    const sourceIds = (sources || []).map(s => Number(s.id)).filter(Boolean);
 
-      // 3) Collected aggregated by MDA
-      const collectedByMda = await loadCollectedByMda();
+    // 2) Load budgets for selected year for these sources
+    const budgetBySource = new Map();
+    if (sourceIds.length) {
+      for (const ids of chunkArray(sourceIds, 200)) {
+        const { data: buds, error: bErr } = await sb
+          .from("revenue_source_budgets")
+          .select("revenue_source_id, approved_budget, budget_year")
+          .eq("budget_year", selectedYear)
+          .in("revenue_source_id", ids);
 
-      // 4) Build summary rows (one row per MDA)
-      currentRows = (mdasInScope || []).map(m => {
-        const mdaId = String(m.id);
-        const budget = Number(budgetByMda.get(mdaId) || 0);
-        const collected = Number(collectedByMda.get(mdaId) || 0);
+        if (bErr) {
+          console.warn("Budget load error:", bErr);
+          continue;
+        }
 
-        const variance = budget - collected;
-        const perf = budget > 0 ? (collected / budget) * 100 : 0;
-
-        return {
-          mda_id: Number(m.id),
-          mda_name: m.name || "",
-          mda_code: m.code || "",
-          budget,
-          collected,
-          variance,
-          performance: perf
-        };
-      });
-
-      // Sort: by name
-      currentRows.sort((a, b) => `${a.mda_name}`.localeCompare(`${b.mda_name}`));
-
-      applySearchAndRender();
-
-      // Cards (totals across visible scope, not search)
-      const totalCollected = currentRows.reduce((sum, r) => sum + Number(r.collected || 0), 0);
-      const totalBudget = currentRows.reduce((sum, r) => sum + Number(r.budget || 0), 0);
-      const perf = totalBudget > 0 ? (totalCollected / totalBudget) * 100 : 0;
-
-      if (cardPeriod) cardPeriod.textContent = getPeriodLabel();
-      if (cardScope) cardScope.textContent = getMdaLabel(selectedMda);
-      if (cardRows) cardRows.textContent = String(currentRows.length);
-      if (cardTotalCollected) cardTotalCollected.textContent = formatNumber(totalCollected);
-      if (cardBudget) cardBudget.textContent = formatNumber(totalBudget);
-      if (cardPerformance) cardPerformance.textContent = `Performance: ${perf.toFixed(2)}%`;
-
-      if (tableSubtitle) {
-        tableSubtitle.textContent = `${getMdaLabel(selectedMda)} • ${getViewLabel()} • ${getPeriodLabel()}`;
+        (buds || []).forEach(b => {
+          budgetBySource.set(String(b.revenue_source_id), Number(b.approved_budget || 0));
+        });
       }
-
-      if (statusText) statusText.textContent = "Report loaded. You can now export.";
-      setExportsEnabled(currentRows.length > 0);
-    } catch (err) {
-      console.error(err);
-      setLoading("Failed to load report. Check console for details.");
-      setExportsEnabled(false);
     }
+
+    // 3) Load collected amounts (monthly summary table)
+    let revQuery = sb
+      .from("revenues")
+      .select("revenue_source_id, amount")
+      .eq("mda_id", mdaId)
+      .eq("revenue_year", selectedYear);
+
+    if (selectedMonth) revQuery = revQuery.eq("revenue_month", selectedMonth);
+
+    const { data: revs, error: rErr } = await revQuery;
+    if (rErr) throw rErr;
+
+    // aggregate collected by source_id
+    const collectedBySource = new Map();
+    (revs || []).forEach(r => {
+      const sid = String(r.revenue_source_id);
+      const prev = collectedBySource.get(sid) || 0;
+      collectedBySource.set(sid, prev + Number(r.amount || 0));
+    });
+
+    // 4) Build rows
+    currentRows = (sources || []).map(s => {
+      const sid = String(s.id);
+      const budget = Number(budgetBySource.get(sid) || 0);
+      const collected = Number(collectedBySource.get(sid) || 0);
+      const variance = budget - collected;
+      const perf = budget > 0 ? (collected / budget) * 100 : 0;
+
+      return {
+        revenue_source_id: Number(s.id),
+        revenue_source: s.name || "",
+        code: s.code || "",
+        budget,
+        collected,
+        variance,
+        performance: perf
+      };
+    });
+
+    applySearchAndRender();
+
+    // Cards
+    const totalCollected = currentRows.reduce((sum, r) => sum + Number(r.collected || 0), 0);
+    const totalBudget = currentRows.reduce((sum, r) => sum + Number(r.budget || 0), 0);
+    const perf = totalBudget > 0 ? (totalCollected / totalBudget) * 100 : 0;
+
+    if (cardPeriod) cardPeriod.textContent = getPeriodLabel();
+    if (cardRows) cardRows.textContent = String(currentRows.length);
+    if (cardTotalCollected) cardTotalCollected.textContent = formatNumber(totalCollected);
+    if (cardBudget) cardBudget.textContent = formatNumber(totalBudget);
+    if (cardPerformance) cardPerformance.textContent = `Performance: ${perf.toFixed(2)}%`;
+
+    if (tableSubtitle) {
+      tableSubtitle.textContent = `${mdaInfo?.name || "MDA"} • ${getViewLabel()} • ${getPeriodLabel()}`;
+    }
+
+    if (statusText) statusText.textContent = "Report loaded. You can now export.";
+    setExportsEnabled(currentRows.length > 0);
   }
 
   function applySearchAndRender() {
@@ -388,7 +290,7 @@
 
     if (q) {
       filteredRows = currentRows.filter(r => {
-        const hay = `${r.mda_name} ${r.mda_code}`.toLowerCase();
+        const hay = `${r.revenue_source} ${r.code}`.toLowerCase();
         return hay.includes(q);
       });
     }
@@ -402,9 +304,9 @@
     const showCollected = mode === "collected" || mode === "both";
     const showBudget = mode === "budget" || mode === "both";
 
-    // Clean + professional table: MDA-level only
     const head = [];
-    head.push(`<th class="px-3 py-2 border-b border-slate-200">MDA</th>`);
+    head.push(`<th class="px-3 py-2 border-b border-slate-200">Revenue source</th>`);
+    head.push(`<th class="px-3 py-2 border-b border-slate-200">Code</th>`);
     if (showBudget) head.push(`<th class="px-3 py-2 border-b border-slate-200 text-right">Approved budget</th>`);
     if (showCollected) head.push(`<th class="px-3 py-2 border-b border-slate-200 text-right">Collected</th>`);
     if (mode === "both") {
@@ -422,32 +324,25 @@
       return;
     }
 
-    const bodyHtml = rows.map(r => {
+    reportTableBody.innerHTML = rows.map(r => {
       const cells = [];
-      const mdaLabel = (r.mda_name ? `${r.mda_name} (${r.mda_code})` : `MDA ${r.mda_id}`);
-
-      cells.push(`<td class="px-3 py-2 whitespace-nowrap">${safeText(mdaLabel)}</td>`);
-
+      cells.push(`<td class="px-3 py-2 whitespace-nowrap">${safeText(r.revenue_source || "—")}</td>`);
+      cells.push(`<td class="px-3 py-2 whitespace-nowrap">${safeText(r.code || "—")}</td>`);
       if (showBudget) cells.push(`<td class="px-3 py-2 text-right">${formatNumber(r.budget)}</td>`);
       if (showCollected) cells.push(`<td class="px-3 py-2 text-right">${formatNumber(r.collected)}</td>`);
-
       if (mode === "both") {
         cells.push(`<td class="px-3 py-2 text-right">${formatNumber(r.variance)}</td>`);
         cells.push(`<td class="px-3 py-2 text-right">${Number(r.performance || 0).toFixed(2)}</td>`);
       }
-
       return `<tr class="hover:bg-slate-50">${cells.join("")}</tr>`;
     }).join("");
 
-    reportTableBody.innerHTML = bodyHtml;
     if (window.lucide) lucide.createIcons();
   }
 
-  // ===== Excel export (clean MDA summary) =====
+  // ===== Excel export =====
   function exportExcel() {
     if (!window.XLSX) { alert("Excel library (XLSX) not loaded."); return; }
-
-    // Export what user is currently seeing (after search)
     const rowsToExport = filteredRows && filteredRows.length ? filteredRows : currentRows;
     if (!rowsToExport.length) return;
 
@@ -463,8 +358,8 @@
     const meta = [
       ["KATSINA STATE INTERNAL REVENUE SERVICE (KTIRS)"],
       ["MDA REVENUE REPORTING SYSTEM (NTR)"],
-      ["MDA SUMMARY REPORT"],
-      ["Scope", getMdaLabel(selectedMda)],
+      ["MDA REPORT (REVENUE BY SOURCE)"],
+      ["MDA", `${mdaInfo?.name || ""} (${mdaInfo?.code || ""})`],
       ["Period", getPeriodLabel()],
       ["View", mode.toUpperCase()],
       ["Generated", nowStamp()],
@@ -476,14 +371,16 @@
     ];
 
     const header = [
-      "MDA",
+      "Revenue Source",
+      "Code",
       ...(showBudget ? ["Approved Budget"] : []),
       ...(showCollected ? ["Collected"] : []),
       ...(mode === "both" ? ["Variance", "Performance (%)"] : [])
     ];
 
     const body = rowsToExport.map(r => ([
-      `${r.mda_name} (${r.mda_code})`,
+      r.revenue_source,
+      r.code,
       ...(showBudget ? [Number(r.budget || 0)] : []),
       ...(showCollected ? [Number(r.collected || 0)] : []),
       ...(mode === "both" ? [Number(r.variance || 0), Number((r.performance || 0).toFixed(2))] : [])
@@ -493,26 +390,16 @@
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    // Optional: give columns decent widths (SheetJS supports !cols) [web:144]
-    ws["!cols"] = [
-      { wch: 45 },
-      ...(showBudget ? [{ wch: 18 }] : []),
-      ...(showCollected ? [{ wch: 18 }] : []),
-      ...(mode === "both" ? [{ wch: 16 }, { wch: 16 }] : [])
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, "MDA Summary");
+    XLSX.utils.book_append_sheet(wb, ws, "MDA Report");
 
     const ym = selectedMonth ? String(selectedMonth).padStart(2, "0") : "all";
-    XLSX.writeFile(wb, `KTIRS_NTR_MDA_Summary_${selectedYear}_${ym}.xlsx`);
+    XLSX.writeFile(wb, `KTIRS_NTR_${mdaInfo?.code || "MDA"}_${selectedYear}_${ym}.xlsx`);
   }
 
-  // ===== PDF export (clean MDA summary) =====
+  // ===== PDF export =====
   async function exportPdf() {
     const jspdfNS = window.jspdf;
     if (!jspdfNS?.jsPDF) { alert("PDF library not loaded."); return; }
-
     const rowsToExport = filteredRows && filteredRows.length ? filteredRows : currentRows;
     if (!rowsToExport.length) return;
 
@@ -529,13 +416,11 @@
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const marginX = 40;
+    const top = 32;
 
     let logoDataUrl = null;
     try { logoDataUrl = await fetchAsDataURL(LOGO_URL); } catch (e) { console.warn(e); }
 
-    const top = 32;
-
-    // Header
     if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", marginX, top, 62, 62);
 
     doc.setTextColor(...BRAND_BLACK);
@@ -548,7 +433,7 @@
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.text("MDA SUMMARY REPORT", pageW / 2, top + 54, { align: "center" });
+    doc.text("MDA REPORT (REVENUE BY SOURCE)", pageW / 2, top + 54, { align: "center" });
 
     doc.setDrawColor(...BRAND_RED);
     doc.setLineWidth(1);
@@ -556,12 +441,11 @@
 
     doc.setFontSize(9);
     doc.setTextColor(60);
-    doc.text(`Scope: ${getMdaLabel(selectedMda)}`, marginX, top + 94);
+    doc.text(`MDA: ${mdaInfo?.name || ""} (${mdaInfo?.code || ""})`, marginX, top + 94);
     doc.text(`Period: ${getPeriodLabel()}`, marginX, top + 108);
     doc.text(`View: ${mode.toUpperCase()}`, marginX, top + 122);
     doc.text(`Generated: ${nowStamp()}`, marginX, top + 136);
 
-    // Totals block
     doc.setTextColor(...BRAND_BLACK);
     doc.setFont("helvetica", "bold");
     doc.text(`Total Approved Budget: ${formatNumber(totalBudget)}`, marginX, top + 156);
@@ -571,16 +455,17 @@
       doc.text(`Performance: ${perf.toFixed(2)}%`, marginX, top + 198);
     }
 
-    // Table
     const head = [[
-      "MDA",
+      "Revenue Source",
+      "Code",
       ...(showBudget ? ["Approved Budget"] : []),
       ...(showCollected ? ["Collected"] : []),
       ...(mode === "both" ? ["Variance", "Perf. (%)"] : [])
     ]];
 
     const body = rowsToExport.map(r => ([
-      `${r.mda_name} (${r.mda_code})`,
+      r.revenue_source,
+      r.code,
       ...(showBudget ? [formatNumber(r.budget)] : []),
       ...(showCollected ? [formatNumber(r.collected)] : []),
       ...(mode === "both" ? [formatNumber(r.variance), Number(r.performance || 0).toFixed(2)] : [])
@@ -602,7 +487,6 @@
       margin: { left: marginX, right: marginX }
     });
 
-    // Footer page numbers
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -613,26 +497,26 @@
     }
 
     const ym = selectedMonth ? String(selectedMonth).padStart(2, "0") : "all";
-    doc.save(`KTIRS_NTR_MDA_Summary_${selectedYear}_${ym}.pdf`);
+    doc.save(`KTIRS_NTR_${mdaInfo?.code || "MDA"}_${selectedYear}_${ym}.pdf`);
   }
 
-  // ===== Events =====
+  // ===== Wiring =====
   function wireEvents() {
-    if (logoutBtn) logoutBtn.addEventListener("click", logout);
+    if (backBtn) {
+      backBtn.addEventListener("click", () => {
+        window.location.href = `mda-details.html?id=${encodeURIComponent(String(mdaId))}`;
+      });
+    }
+
+    if (refreshBtn) refreshBtn.addEventListener("click", generateReport);
+    if (searchBox) searchBox.addEventListener("input", debounce(applySearchAndRender, 200));
 
     if (yearPicker) yearPicker.addEventListener("change", () => { selectedYear = Number(yearPicker.value) || selectedYear; });
     if (monthPicker) monthPicker.addEventListener("change", () => { selectedMonth = monthPicker.value ? Number(monthPicker.value) : null; });
-
     if (viewMode) viewMode.addEventListener("change", () => {
       selectedView = viewMode.value || selectedView;
       renderTable(filteredRows);
     });
-
-    if (mdaFilter) mdaFilter.addEventListener("change", () => { selectedMda = mdaFilter.value || "all"; });
-
-    if (searchBox) searchBox.addEventListener("input", debounce(() => applySearchAndRender(), 200));
-
-    if (refreshBtn) refreshBtn.addEventListener("click", generateReport);
 
     if (exportExcelBtn) exportExcelBtn.addEventListener("click", exportExcel);
 
@@ -647,25 +531,21 @@
 
   // ===== Init =====
   (async () => {
-    setupSidebar();
     populateYearSelect(yearPicker);
-
     selectedYear = Number(yearPicker?.value) || selectedYear;
-    selectedMonth = monthPicker?.value ? Number(monthPicker.value) : null;
-    selectedView = viewMode?.value || selectedView;
 
     setExportsEnabled(false);
 
-    const ok = await requireAdmin();
+    const ok = await requireUser();
     if (!ok) return;
 
     try {
-      await loadMdas();
-      setLoading('Select Year and click “Generate”.');
+      await loadMdaHeader();
       wireEvents();
+      setLoading('Select year/month and click “Generate”.');
     } catch (e) {
       console.error(e);
-      setLoading("Failed to initialize report. Check console for details.");
+      setLoading("Failed to load MDA header. Check console.");
     }
 
     if (window.lucide) lucide.createIcons();

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS MDA Revenue Reporting System (NTR) – MDA Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root { --kirs-green: #0b4f3c; --kirs-navy: #16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+    .table-wrapper { position: relative; }
+    .table-wrapper::after{
+      content:""; position:absolute; right:0; top:0; width:16px; height:100%;
+      pointer-events:none; background:linear-gradient(to left, rgba(15,23,42,0.06), transparent);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">MDA Revenue Reporting System (NTR)</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200" id="topbarUserOrg">KTIRS Headquarters</span>
+          </div>
+
+          <button id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="flex-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- Back + Title + Controls -->
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div class="space-y-1">
+          <button id="backToMdaDetailsBtn"
+            class="inline-flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to MDA Details</span>
+          </button>
+
+          <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">MDA Report</h1>
+          <p class="text-sm text-slate-600" id="pageSubtitle">Loading…</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="text-xs text-slate-500">Year</label>
+          <select id="yearPicker"
+            class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"></select>
+
+          <label class="text-xs text-slate-500">Month</label>
+          <select id="monthPicker"
+            class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+            <option value="">All months</option>
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+
+          <label class="text-xs text-slate-500">View</label>
+          <select id="viewMode"
+            class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+            <option value="collected">Collected</option>
+            <option value="budget">Budget</option>
+            <option value="both" selected>Collected + Budget</option>
+          </select>
+
+          <button id="exportExcelBtn"
+            class="h-9 inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 text-xs font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Export Excel</span>
+          </button>
+
+          <button id="exportPdfBtn"
+            class="h-9 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Export PDF</span>
+          </button>
+
+          <button id="refreshBtn"
+            class="h-9 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>Generate</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="bg-white border border-slate-200 rounded-md p-4 space-y-2">
+        <p class="text-[11px] text-slate-500" id="statusText">Select year/month and click “Generate”.</p>
+        <div class="flex flex-wrap gap-2">
+          <input id="searchBox" type="text"
+            class="h-9 w-full sm:w-[360px] rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            placeholder="Search revenue source or code" />
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Report period</p>
+          <p class="text-base font-semibold text-slate-900" id="cardPeriod">—</p>
+          <p class="text-[11px] text-slate-500" id="cardScope">—</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Rows</p>
+          <p class="text-lg font-semibold text-slate-900" id="cardRows">0</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Total collected</p>
+          <p class="text-lg font-semibold text-slate-900" id="cardTotalCollected">0.00</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Total approved budget</p>
+          <p class="text-lg font-semibold text-slate-900" id="cardBudget">0.00</p>
+          <p class="text-[11px] text-slate-500" id="cardPerformance">Performance: 0.00%</p>
+        </div>
+      </section>
+
+      <!-- Data table -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Revenue sources</h2>
+            <p class="text-xs text-slate-500" id="tableSubtitle">No report generated yet.</p>
+          </div>
+          <div class="text-xs text-slate-500" id="rowCount">0 rows</div>
+        </div>
+
+        <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-[950px] w-full text-xs text-left" id="reportTable">
+            <thead class="bg-slate-50 text-slate-600" id="reportTableHead"></thead>
+            <tbody class="divide-y divide-slate-100" id="reportTableBody">
+              <tr class="text-slate-500">
+                <td class="px-3 py-4 text-center" colspan="6">Select parameters and click “Generate”.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[11px] text-slate-500">
+          Collections are aggregated from <code>revenues</code> by <code>revenue_year</code> and <code>revenue_month</code>.
+        </p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const SUPABASE_URL = 'https://imjstotwjyzahrednkcx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_y69EQkO-TLiGzvhlMmjOBQ_0uAo3za-';
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/mda-report.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
